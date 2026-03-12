@@ -1,0 +1,9 @@
+.env
+node_modules
+_archives
+_normal*
+_edgee*
+_rtk*
+report-*
+simulation-*
+claude-pro-usage.json

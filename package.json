@@ -1,0 +1,14 @@
+{
+  "type": "module",
+  "scripts": {
+    "analyze": "tsx src/analyze.ts",
+    "analyze-full": "tsx src/analyze-full.ts"
+  },
+  "dependencies": {
+    "edgee": "^0.1.6"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "@types/node": "^22.0.0"
+  }
+}
