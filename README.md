@@ -1,6 +1,8 @@
-# Claude Session Benchmark
+# Claude Compression Lab - Benchmark
 
 A benchmarking suite that measures Claude Code's token consumption under three scenarios, then analyses the results to evaluate the economic impact of Edgee's AI token compressor.
+
+> **See the [`reports/`](./reports/) folder for detailed, real-world reports from our latest benchmark runs, including token usage, costs, and scenario breakdowns.**
 
 ---
 
