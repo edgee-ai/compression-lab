@@ -1,6 +1,6 @@
-# Claude Compression Lab - Benchmark
+# Compression Lab - Benchmark
 
-A benchmarking suite that measures Claude Code's token consumption under three scenarios, then analyses the results to evaluate the economic impact of Edgee's AI token compressor.
+A benchmarking suite that measures Coding Agent's token consumption under different scenarios, then analyses the results to evaluate the economic impact of Edgee's AI token compressor.
 
 > **See the [`reports/`](./reports/) folder for detailed, real-world reports from our latest benchmark runs, including token usage, costs, and scenario breakdowns.**
 
@@ -18,6 +18,7 @@ The benchmark works in two phases:
 ## Prerequisites
 
 - Node.js ≥ 18 with `npm`
+- `edgee` CLI installed 
 - `claude` CLI installed and accessible in your `PATH`
 - RTK (Rust Token Killer): required for the `rtk` scenario; see https://github.com/rtk-ai/rtk
 - An `.env` file at the project root (see below)
@@ -32,18 +33,19 @@ npm install
 
 ## Environment setup
 
-Create a `.env` file at the root of the project:
+First, create an empty `.edgee/credentials.toml` file at the root of this project, so you can use mulitple edgee profiles.
+Then, create two Edgee accounts, one for the `normal` scenario (without compression) and one for the `edgee` scenario (with compression).
+_If you want to test rtk as well, you'll have to create another account dedicated to it (optional)._
 
+Then use login
 ```env
-EDGEE_API_TOKEN_NORMAL=<your-token-for-normal-sessions>
-EDGEE_API_TOKEN_EDGEE=<your-token-for-edgee-sessions>
-EDGEE_API_TOKEN_RTK=<your-token-for-rtk-sessions>
+edgee auth login -p normal 
+edgee auth login -p edgee
+edgee auth login -p rtk #optional
 ```
 
-Each token is an Edgee API key used to route Claude's requests through the Edgee AI Gateway.
-
 ### Reports
-If you want to generate reports, you'll need another variable:
+If you want to generate reports, you'll need the following variable:
 
 ```env
 EDGEE_API_TOKEN_REPORT=<your-token-to-generate-reports>
@@ -54,8 +56,15 @@ EDGEE_API_TOKEN_REPORT=<your-token-to-generate-reports>
 ## Running a benchmark session
 
 ```bash
-./run.sh <scenario>
+./run.sh <agent> <scenario>
 ```
+
+**Agents:**
+
+| Scenario | Description |
+|----------|-------------|
+| `claude` | Baseline — Claude requests go through Edgee AI Gateway with no compression |
+| `codex`  | Edgee token compressor is enabled; input tokens are reduced before forwarding to Anthropic |
 
 **Scenarios:**
 
@@ -66,28 +75,26 @@ EDGEE_API_TOKEN_REPORT=<your-token-to-generate-reports>
 | `rtk`    | RTK (Rust Token Killer) is enabled as a local bash proxy; Claude's bash tool calls go through RTK before hitting the gateway |
 
 Each run:
-1. Copies the `cli/` source directory into a fresh `_<scenario>-<random>/` folder
-2. Creates an isolated Claude config directory inside it
-3. Launches Claude Code with `--dangerously-skip-permissions`
+1. Copies the `cli/` source directory into a fresh `_<agent>-<scenario>-<random>/` folder
+2. Creates an isolated Claude/Codex config directory inside it
+3. Launches Claude/Codex with `--dangerously-skip-permissions` (or equivalent)
 
 **Example:**
 
 ```bash
-./run.sh edgee
+./run.sh claude edgee
 ```
 
-This creates `_edgee-4a2f8c1d/` and starts a Claude session inside it.
+This creates `_claude-edgee-4a2f8c1d/` and starts a Claude session inside it.
 
-### What to do inside the Claude session
+### What to do inside the Coding Agent session
 
-Once Claude starts, put it in **plan mode**, then paste the coding instructions **one at a time** from `instructions.md`. For each instruction:
+Once the agent starts, put it in **plan mode**, then paste the coding instructions **one at a time** from `instructions.md`. For each instruction:
 
 1. Paste the instruction
 2. Let Claude produce a plan
 3. Approve the plan and let it execute
 4. Move on to the next instruction
-
-The session records token usage and cost in `.claude/.claude.json` inside the session directory.
 
 ---
 
@@ -95,7 +102,7 @@ The session records token usage and cost in `.claude/.claude.json` inside the se
 
 ### Standard benchmark (`npm run analyze`)
 
-Reads all `_normal-*`, `_edgee-*`, and `_rtk-*` session directories (excluding `-full` ones), aggregates token and cost metrics, then calls the Edgee LLM API to produce an AI-written analysis.
+Reads all `_claude-normal-*`, `_claude-edgee-*` session directories (excluding `-full` ones), aggregates token and cost metrics, then calls the Edgee LLM API to produce an AI-written analysis.
 
 ```bash
 npm run analyze

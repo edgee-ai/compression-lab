@@ -2,8 +2,11 @@
 .env
 .env.prod
 .env.staging
+.edgee
 node_modules
 _archives
+_codex*
+_claude*
 _normal*
 _edgee*
 _rtk*
