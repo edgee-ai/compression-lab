@@ -10,8 +10,8 @@ A benchmarking suite that measures Coding Agent's token consumption under differ
 
 The benchmark works in two phases:
 
-1. **Run** — Launch isolated Claude Code sessions that complete a fixed set of coding instructions. Each session runs in one of three *scenarios* (compression strategies).
-2. **Analyse** — Read the session artefacts and produce cost reports.
+1. **Run** — Launch isolated coding-agent sessions that complete a fixed set of coding instructions. Each session runs in one of three *scenarios* (compression strategies).
+2. **Analyse** — Read the generated session artefacts and produce cost reports.
 
 ---
 
@@ -102,7 +102,7 @@ Once the agent starts, put it in **plan mode**, then paste the coding instructio
 
 ### Standard benchmark (`npm run analyze`)
 
-Reads all `_claude-normal-*`, `_claude-edgee-*` session directories (excluding `-full` ones), aggregates token and cost metrics, then calls the Edgee LLM API to produce an AI-written analysis.
+Reads all `_<agent>-<scenario>-*` session directories that contain `session-stats.json` (excluding `-full` ones), aggregates token and cost metrics by agent + scenario, then calls the Edgee LLM API to produce an AI-written analysis.
 
 ```bash
 npm run analyze
@@ -115,7 +115,7 @@ Outputs two files in the project root:
 
 ### Endurance benchmark (`npm run analyze-full`)
 
-Reads all `_*-full/` session directories and their `claude-pro-usage.json` files to measure how many instructions each scenario can complete before exhausting a Claude Pro plan.
+Reads all `_<agent>-<scenario>-*-full` session directories, uses `session-stats.json` for token/cost totals, and uses `claude-pro-usage.json` for the recorded per-instruction endurance progression.
 
 ```bash
 npm run analyze-full

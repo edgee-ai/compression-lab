@@ -1,7 +1,12 @@
 import fs from 'fs';
 import path from 'path';
-
-// ─── Load .env ───────────────────────────────────────────────────────────────
+import {
+  discoverSessionDirs,
+  formatAgentScenarioLabel,
+  readSessionStats,
+  type SessionDescriptor,
+  type SessionStatsMetrics,
+} from './session-stats.js';
 
 function loadEnv(envPath: string): Record<string, string> {
   const env: Record<string, string> = {};
@@ -22,107 +27,63 @@ function loadEnv(envPath: string): Record<string, string> {
   return env;
 }
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-interface ModelUsage {
-  inputTokens: number;
-  outputTokens: number;
-  cacheReadInputTokens: number;
-  cacheCreationInputTokens: number;
-  costUSD: number;
-}
-
-interface ScenarioMetrics {
+interface ScenarioMetrics extends SessionStatsMetrics {
+  agent: string;
+  scenario: string;
   dirCount: number;
-  totalInputTokens: number;
-  totalOutputTokens: number;
-  totalCost: number;
-  cacheReadTokens: number;
-  cacheCreationTokens: number;
-  linesAdded: number;
-  linesRemoved: number;
-  apiDurationMs: number;
-  byModel: Record<string, ModelUsage>;
 }
 
-type ScenarioType = 'normal' | 'edgee' | 'rtk';
-
-const SCENARIO_LABELS: Record<ScenarioType, string> = {
-  normal:   'Claude',
-  edgee: 'Claude + Edgee',
-  rtk:      'Claude + RTK',
-};
-
-// ─── Find scenario dirs ───────────────────────────────────────────────────────
-
-async function findScenarioDirs(cwd: string): Promise<Record<ScenarioType, string[]>> {
-  const entries = fs.readdirSync(cwd, { withFileTypes: true });
-  const dirs: Record<ScenarioType, string[]> = { normal: [], edgee: [], rtk: [] };
-
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    const name = entry.name;
-    const fullPath = path.join(cwd, name);
-    if (name.endsWith('-full')) continue;
-    if (name.startsWith('_normal-')) dirs.normal.push(fullPath);
-    else if (name.startsWith('_edgee-')) dirs.edgee.push(fullPath);
-    else if (name.startsWith('_rtk-')) dirs.rtk.push(fullPath);
-  }
-
-  return dirs;
+function keyFor(agent: string, scenario: string): string {
+  return `${agent}:${scenario}`;
 }
 
-// ─── Clean cli/ dirs ─────────────────────────────────────────────────────────
-
-async function cleanCliDirs(scenarioDirs: Record<ScenarioType, string[]>): Promise<void> {
-  const allDirs = Object.values(scenarioDirs).flat();
-  for (const dir of allDirs) {
-    const cliPath = path.join(dir, 'cli');
+async function cleanCliDirs(sessions: SessionDescriptor[]): Promise<void> {
+  for (const session of sessions) {
+    const cliPath = path.join(session.dir, 'cli');
     await fs.promises.rm(cliPath, { recursive: true, force: true });
     console.log(`Cleaned: ${cliPath}`);
   }
 }
 
-// ─── Parse .claude.json ───────────────────────────────────────────────────────
-
-function parseClaudeJson(dir: string): ScenarioMetrics | null {
-  const jsonPath = path.join(dir, '.claude', '.claude.json');
-  let data: Record<string, unknown>;
-  try {
-    data = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-  } catch {
-    console.warn(`  Warning: Could not read ${jsonPath}`);
-    return null;
-  }
-
-  const projects = (data.projects ?? {}) as Record<string, Record<string, unknown>>;
-  const metrics: ScenarioMetrics = {
+function createEmptyMetrics(agent: string, scenario: string): ScenarioMetrics {
+  return {
+    agent,
+    scenario,
     dirCount: 0,
     totalInputTokens: 0,
     totalOutputTokens: 0,
     totalCost: 0,
     cacheReadTokens: 0,
     cacheCreationTokens: 0,
-    linesAdded: 0,
-    linesRemoved: 0,
     apiDurationMs: 0,
     byModel: {},
   };
+}
 
-  for (const proj of Object.values(projects)) {
-    metrics.totalInputTokens += (proj.lastTotalInputTokens as number) ?? 0;
-    metrics.totalOutputTokens += (proj.lastTotalOutputTokens as number) ?? 0;
-    metrics.totalCost += (proj.lastCost as number) ?? 0;
-    metrics.cacheReadTokens += (proj.lastTotalCacheReadInputTokens as number) ?? 0;
-    metrics.cacheCreationTokens += (proj.lastTotalCacheCreationInputTokens as number) ?? 0;
-    metrics.linesAdded += (proj.lastLinesAdded as number) ?? 0;
-    metrics.linesRemoved += (proj.lastLinesRemoved as number) ?? 0;
-    metrics.apiDurationMs += (proj.lastAPIDuration as number) ?? 0;
+function aggregateSessions(sessions: SessionDescriptor[]): Record<string, ScenarioMetrics> {
+  const aggregated: Record<string, ScenarioMetrics> = {};
 
-    const modelUsage = (proj.lastModelUsage ?? {}) as Record<string, ModelUsage>;
-    for (const [model, usage] of Object.entries(modelUsage)) {
-      if (!metrics.byModel[model]) {
-        metrics.byModel[model] = {
+  for (const session of sessions) {
+    const metrics = readSessionStats(session.dir);
+    if (!metrics) continue;
+
+    const key = keyFor(session.agent, session.scenario);
+    if (!aggregated[key]) {
+      aggregated[key] = createEmptyMetrics(session.agent, session.scenario);
+    }
+
+    const target = aggregated[key];
+    target.dirCount += 1;
+    target.totalInputTokens += metrics.totalInputTokens;
+    target.totalOutputTokens += metrics.totalOutputTokens;
+    target.totalCost += metrics.totalCost;
+    target.cacheReadTokens += metrics.cacheReadTokens;
+    target.cacheCreationTokens += metrics.cacheCreationTokens;
+    target.apiDurationMs += metrics.apiDurationMs;
+
+    for (const [model, usage] of Object.entries(metrics.byModel)) {
+      if (!target.byModel[model]) {
+        target.byModel[model] = {
           inputTokens: 0,
           outputTokens: 0,
           cacheReadInputTokens: 0,
@@ -130,123 +91,85 @@ function parseClaudeJson(dir: string): ScenarioMetrics | null {
           costUSD: 0,
         };
       }
-      metrics.byModel[model].inputTokens += usage.inputTokens ?? 0;
-      metrics.byModel[model].outputTokens += usage.outputTokens ?? 0;
-      metrics.byModel[model].cacheReadInputTokens += usage.cacheReadInputTokens ?? 0;
-      metrics.byModel[model].cacheCreationInputTokens += usage.cacheCreationInputTokens ?? 0;
-      metrics.byModel[model].costUSD += usage.costUSD ?? 0;
+
+      const bucket = target.byModel[model];
+      bucket.inputTokens += usage.inputTokens;
+      bucket.outputTokens += usage.outputTokens;
+      bucket.cacheReadInputTokens += usage.cacheReadInputTokens;
+      bucket.cacheCreationInputTokens += usage.cacheCreationInputTokens;
+      bucket.costUSD += usage.costUSD;
     }
   }
 
-  return metrics;
+  return aggregated;
 }
 
-// ─── Aggregate by scenario type ───────────────────────────────────────────────
-
-function aggregateScenario(dirs: string[]): ScenarioMetrics {
-  const agg: ScenarioMetrics = {
-    dirCount: 0,
-    totalInputTokens: 0,
-    totalOutputTokens: 0,
-    totalCost: 0,
-    cacheReadTokens: 0,
-    cacheCreationTokens: 0,
-    linesAdded: 0,
-    linesRemoved: 0,
-    apiDurationMs: 0,
-    byModel: {},
-  };
-
-  for (const dir of dirs) {
-    const m = parseClaudeJson(dir);
-    if (!m) continue;
-    agg.dirCount++;
-    agg.totalInputTokens += m.totalInputTokens;
-    agg.totalOutputTokens += m.totalOutputTokens;
-    agg.totalCost += m.totalCost;
-    agg.cacheReadTokens += m.cacheReadTokens;
-    agg.cacheCreationTokens += m.cacheCreationTokens;
-    agg.linesAdded += m.linesAdded;
-    agg.linesRemoved += m.linesRemoved;
-    agg.apiDurationMs += m.apiDurationMs;
-
-    for (const [model, usage] of Object.entries(m.byModel)) {
-      if (!agg.byModel[model]) {
-        agg.byModel[model] = {
-          inputTokens: 0,
-          outputTokens: 0,
-          cacheReadInputTokens: 0,
-          cacheCreationInputTokens: 0,
-          costUSD: 0,
-        };
-      }
-      agg.byModel[model].inputTokens += usage.inputTokens;
-      agg.byModel[model].outputTokens += usage.outputTokens;
-      agg.byModel[model].cacheReadInputTokens += usage.cacheReadInputTokens;
-      agg.byModel[model].cacheCreationInputTokens += usage.cacheCreationInputTokens;
-      agg.byModel[model].costUSD += usage.costUSD;
-    }
-  }
-
-  return agg;
+function sortMetrics(scenarios: Record<string, ScenarioMetrics>): ScenarioMetrics[] {
+  return Object.values(scenarios).sort((a, b) => {
+    const agentCmp = a.agent.localeCompare(b.agent);
+    if (agentCmp !== 0) return agentCmp;
+    return a.scenario.localeCompare(b.scenario);
+  });
 }
 
-// ─── Build prompt ─────────────────────────────────────────────────────────────
+function buildPrompt(scenarios: Record<string, ScenarioMetrics>): string {
+  const displayScenarios = Object.fromEntries(
+    Object.entries(scenarios).map(([key, metrics]) => [
+      key,
+      {
+        ...metrics,
+        label: formatAgentScenarioLabel(metrics.agent, metrics.scenario),
+      },
+    ]),
+  );
 
-function buildPrompt(scenarios: Record<ScenarioType, ScenarioMetrics>): string {
-  const dataJson = JSON.stringify(scenarios, null, 2);
-  return `You are analyzing token usage data from Claude Code benchmark sessions run across three scenarios:
-- **${SCENARIO_LABELS.normal}**: Standard Claude Code session with no special configuration
-- **${SCENARIO_LABELS.edgee}**: Session using Edgee conversation compression to reduce context size
-- **${SCENARIO_LABELS.rtk}**: Session using RTK local bash proxy that pre-processes large shell outputs
+  return `You are analyzing token usage data from coding-agent benchmark sessions.
 
-Here is the aggregated token usage data (JSON, keys are scenario IDs):
+Each scenario key is in the form "agent:scenario", where:
+- agent is the coding agent used for the run
+- scenario is the benchmark setup (normal, edgee, rtk)
+
+Here is the aggregated token usage data:
 
 \`\`\`json
-${dataJson}
+${JSON.stringify(displayScenarios, null, 2)}
 \`\`\`
 
-Scenario ID mapping: normal = "${SCENARIO_LABELS.normal}", edgee = "${SCENARIO_LABELS.edgee}", rtk = "${SCENARIO_LABELS.rtk}"
-
-Token fields:
+Metric definitions:
 - totalInputTokens: fresh input tokens sent to the API
 - totalOutputTokens: tokens generated by the model
-- cacheReadTokens: tokens served from the prompt cache (very cheap)
-- cacheCreationTokens: tokens written to the prompt cache
-- totalCost: total USD cost
-- byModel: breakdown per model
+- cacheReadTokens: cached input tokens served cheaply
+- cacheCreationTokens: tokens written into cache
+- totalCost: USD cost
+- byModel: per-model token and cost breakdown
 
-Please provide a concise analytical report covering:
+Please provide a concise analytical Markdown report that:
+1. Compares all reported agent/scenario combinations by total input+output tokens and cost
+2. Highlights savings of each optimized scenario versus the same agent's normal baseline when that baseline exists
+3. Compares cache efficiency across all combinations
+4. Ranks combinations by cost and calls out the cheapest
+5. Gives a production recommendation, making clear whether the recommendation differs by agent
 
-1. **Overall token consumption**: Which scenario consumed the fewest total tokens (input + output combined)?
-2. **${SCENARIO_LABELS.edgee} vs ${SCENARIO_LABELS.normal} savings**: Absolute and percentage reduction in total tokens and cost
-3. **${SCENARIO_LABELS.rtk} vs ${SCENARIO_LABELS.normal} savings**: Absolute and percentage reduction in total tokens and cost
-4. **Cache efficiency**: Cache hit rate (cacheReadTokens / (cacheReadTokens + cacheCreationTokens + totalInputTokens)) per scenario — which scenario uses the cache most effectively?
-5. **Cost comparison**: Rank scenarios by cost, highlight the cheapest
-6. **Recommendation**: Which scenario would you recommend for production use and why?
-
-Use the display names (${SCENARIO_LABELS.normal}, ${SCENARIO_LABELS.edgee}, ${SCENARIO_LABELS.rtk}) throughout the report, not the internal IDs.
-
-Format the report in clear Markdown with headers and a summary table where appropriate.`;
+Use the provided label field for display names when referring to scenarios. Include a summary table.`;
 }
-
-// ─── Markdown report ──────────────────────────────────────────────────────────
 
 function buildMarkdownReport(
   generatedAt: string,
-  scenarios: Record<ScenarioType, ScenarioMetrics>,
+  scenarios: Record<string, ScenarioMetrics>,
   analysis: string,
 ): string {
   const fmt = (n: number) => n.toLocaleString('en-US');
-  const pct = (a: number, b: number) =>
-    b === 0 ? 'N/A' : `${(((a - b) / b) * 100).toFixed(1)}%`;
+  const rows = sortMetrics(scenarios).map((metrics) => {
+    const total = metrics.totalInputTokens + metrics.totalOutputTokens;
+    const totalCache = metrics.cacheReadTokens + metrics.cacheCreationTokens + metrics.totalInputTokens;
+    const hitRate = totalCache === 0 ? 0 : (metrics.cacheReadTokens / totalCache) * 100;
 
-  const rows = (['normal', 'edgee', 'rtk'] as ScenarioType[]).map(type => {
-    const s = scenarios[type];
-    const total = s.totalInputTokens + s.totalOutputTokens;
-    const totalCache = s.cacheReadTokens + s.cacheCreationTokens + s.totalInputTokens;
-    const hitRate = totalCache === 0 ? 0 : (s.cacheReadTokens / totalCache) * 100;
-    return { type, s, total, hitRate };
+    return {
+      label: formatAgentScenarioLabel(metrics.agent, metrics.scenario),
+      metrics,
+      total,
+      hitRate,
+    };
   });
 
   const lines: string[] = [
@@ -256,23 +179,31 @@ function buildMarkdownReport(
     ``,
     `## Raw Metrics`,
     ``,
-    `| Scenario | Input Tokens | Output Tokens | Total I/O | Cache Reads | Cache Creates | Cache Hit Rate | Cost (USD) |`,
-    `|---|---:|---:|---:|---:|---:|---:|---:|`,
-    ...rows.map(({ type, s, total, hitRate }) =>
-      `| **${SCENARIO_LABELS[type]}** | ${fmt(s.totalInputTokens)} | ${fmt(s.totalOutputTokens)} | ${fmt(total)} | ${fmt(s.cacheReadTokens)} | ${fmt(s.cacheCreationTokens)} | ${hitRate.toFixed(1)}% | $${s.totalCost.toFixed(4)} |`
+    `| Scenario | Runs | Input Tokens | Output Tokens | Total I/O | Cache Reads | Cache Creates | Cache Hit Rate | Cost (USD) |`,
+    `|---|---:|---:|---:|---:|---:|---:|---:|---:|`,
+    ...rows.map(({ label, metrics, total, hitRate }) =>
+      `| **${label}** | ${metrics.dirCount} | ${fmt(metrics.totalInputTokens)} | ${fmt(metrics.totalOutputTokens)} | ${fmt(total)} | ${fmt(metrics.cacheReadTokens)} | ${fmt(metrics.cacheCreationTokens)} | ${hitRate.toFixed(1)}% | $${metrics.totalCost.toFixed(4)} |`,
     ),
     ``,
     `## Model Breakdown`,
     ``,
   ];
 
-  for (const { type, s } of rows) {
-    lines.push(`### ${SCENARIO_LABELS[type]}`);
+  for (const { label, metrics } of rows) {
+    lines.push(`### ${label}`);
     lines.push(``);
     lines.push(`| Model | Input | Output | Cache Reads | Cache Creates | Cost (USD) |`);
     lines.push(`|---|---:|---:|---:|---:|---:|`);
-    for (const [model, u] of Object.entries(s.byModel)) {
-      lines.push(`| ${model} | ${fmt(u.inputTokens)} | ${fmt(u.outputTokens)} | ${fmt(u.cacheReadInputTokens)} | ${fmt(u.cacheCreationInputTokens)} | $${u.costUSD.toFixed(4)} |`);
+
+    const models = Object.entries(metrics.byModel).sort(([a], [b]) => a.localeCompare(b));
+    if (models.length === 0) {
+      lines.push(`| _No model data_ | 0 | 0 | 0 | 0 | $0.0000 |`);
+    } else {
+      for (const [model, usage] of models) {
+        lines.push(
+          `| ${model} | ${fmt(usage.inputTokens)} | ${fmt(usage.outputTokens)} | ${fmt(usage.cacheReadInputTokens)} | ${fmt(usage.cacheCreationInputTokens)} | $${usage.costUSD.toFixed(4)} |`,
+        );
+      }
     }
     lines.push(``);
   }
@@ -284,8 +215,6 @@ function buildMarkdownReport(
   return lines.join('\n');
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
-
 async function main() {
   const cwd = process.cwd();
   const env = { ...loadEnv(path.join(cwd, '.env')), ...process.env };
@@ -295,36 +224,36 @@ async function main() {
     throw new Error('EDGEE_API_TOKEN_REPORT not found in .env or environment');
   }
 
-  // 1. Find scenario dirs
-  console.log('Finding scenario directories...');
-  const scenarioDirs = await findScenarioDirs(cwd);
-  for (const [type, dirs] of Object.entries(scenarioDirs)) {
-    console.log(`  ${type}: ${dirs.length} dir(s) — ${dirs.map(d => path.basename(d)).join(', ') || 'none'}`);
+  console.log('Finding benchmark directories...');
+  const sessions = discoverSessionDirs(cwd, false);
+  for (const session of sessions) {
+    console.log(`  ${session.agent}:${session.scenario} -> ${path.basename(session.dir)}`);
   }
 
-  if (scenarioDirs.normal.length === 0 && scenarioDirs.edgee.length === 0 && scenarioDirs.rtk.length === 0) {
-    console.error('No scenario directories found');
+  if (sessions.length === 0) {
+    console.error('No benchmark directories found');
     process.exit(1);
   }
 
-  // 2. Clean cli/ dirs
   console.log('\nCleaning cli/ directories...');
-  await cleanCliDirs(scenarioDirs);
+  await cleanCliDirs(sessions);
 
-  // 3. Parse and aggregate metrics
-  console.log('\nParsing .claude.json files...');
-  const scenarios: Record<ScenarioType, ScenarioMetrics> = {
-    normal: aggregateScenario(scenarioDirs.normal),
-    edgee: aggregateScenario(scenarioDirs.edgee),
-    rtk: aggregateScenario(scenarioDirs.rtk),
-  };
+  console.log('\nParsing session-stats.json files...');
+  const scenarios = aggregateSessions(sessions);
+  const rows = sortMetrics(scenarios);
 
-  for (const [type, metrics] of Object.entries(scenarios)) {
-    const total = metrics.totalInputTokens + metrics.totalOutputTokens;
-    console.log(`  ${type}: ${metrics.dirCount} run(s), ${total.toLocaleString()} total tokens, $${metrics.totalCost.toFixed(4)}`);
+  if (rows.length === 0) {
+    console.error('No readable session-stats.json files found');
+    process.exit(1);
   }
 
-  // 4. Call LLM via Edgee API (OpenAI-compatible endpoint)
+  for (const metrics of rows) {
+    const total = metrics.totalInputTokens + metrics.totalOutputTokens;
+    console.log(
+      `  ${metrics.agent}:${metrics.scenario}: ${metrics.dirCount} run(s), ${total.toLocaleString()} total tokens, $${metrics.totalCost.toFixed(4)}`,
+    );
+  }
+
   console.log('\nCalling Claude via Edgee API...');
   const prompt = buildPrompt(scenarios);
 
@@ -359,7 +288,6 @@ async function main() {
     console.log(`  Edgee compression: ${JSON.stringify(compressionInfo)}`);
   }
 
-  // 5. Output
   console.log('\n' + '─'.repeat(80));
   console.log('ANALYSIS REPORT');
   console.log('─'.repeat(80));
@@ -374,7 +302,6 @@ async function main() {
   };
 
   const reportBase = `report-${generatedAt.replace(/[:.]/g, '-')}`;
-
   const reportFile = path.join(cwd, `${reportBase}.json`);
   fs.writeFileSync(reportFile, JSON.stringify(reportData, null, 2));
   console.log(`\nReport saved to: ${reportFile}`);
@@ -385,7 +312,7 @@ async function main() {
   console.log(`Report saved to: ${mdFile}`);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Error:', err);
   process.exit(1);
 });
