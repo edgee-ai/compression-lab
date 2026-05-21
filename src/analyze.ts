@@ -39,9 +39,29 @@ function keyFor(agent: string, scenario: string): string {
 
 async function cleanCliDirs(sessions: SessionDescriptor[]): Promise<void> {
   for (const session of sessions) {
-    const cliPath = path.join(session.dir, 'cli');
-    await fs.promises.rm(cliPath, { recursive: true, force: true });
-    console.log(`Cleaned: ${cliPath}`);
+    try {
+      const cliPath = path.join(session.dir, "cli");
+      //first, copy .edgee/session-stats/*.json to the root of the session directory
+      const statsPath = path.join(cliPath, ".edgee/session-stats");
+      const statsFiles = await fs.promises.readdir(statsPath);
+      for (const file of statsFiles) {
+        await fs.promises.copyFile(
+          path.join(statsPath, file),
+          path.join(session.dir, file),
+        );
+        // rename this file to session-stats.json
+        await fs.promises.rename(
+          path.join(session.dir, file),
+          path.join(session.dir, "session-stats.json"),
+        );
+        // stop the loop
+        break;
+      }
+      await fs.promises.rm(cliPath, { recursive: true, force: true });
+    } catch (error) {
+      console.error(`Error cleaning ${session.dir}: ${error}`);
+    }
+    console.log(`Cleaned: ${session.dir}`);
   }
 }
 
@@ -288,9 +308,9 @@ async function main() {
     console.log(`  Edgee compression: ${JSON.stringify(compressionInfo)}`);
   }
 
-  console.log('\n' + '─'.repeat(80));
-  console.log('ANALYSIS REPORT');
-  console.log('─'.repeat(80));
+  console.log("\n" + "─".repeat(80));
+  console.log("ANALYSIS REPORT");
+  console.log("─".repeat(80));
   console.log(analysisText);
   console.log('─'.repeat(80));
 

@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "{SCRIPT_DIR}/config/rtk/rtk-rewrite.sh"
+            "command": "rtk hook claude"
           }
         ]
       }

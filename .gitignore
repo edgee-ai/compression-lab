@@ -13,3 +13,4 @@ _rtk*
 report-*
 simulation-*
 claude-pro-usage.json
+article-*.md

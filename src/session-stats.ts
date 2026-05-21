@@ -34,13 +34,38 @@ interface SessionStatsByModelEntry {
   total_cache_creation_input_tokens?: unknown;
 }
 
-interface SessionStatsFile {
+/** Token/cost totals from edgee session-stats (nested under `stats`). */
+interface SessionStatsBlock {
   total_cost?: unknown;
   total_input_tokens?: unknown;
   total_output_tokens?: unknown;
   total_cached_input_tokens?: unknown;
   total_cache_creation_input_tokens?: unknown;
   by_model?: unknown;
+}
+
+/** Edgee CLI `SessionLogEntry` written as session-stats.json. */
+interface SessionStatsFile {
+  session_id?: unknown;
+  tool_name?: unknown;
+  ended_at?: unknown;
+  ended_at_unix?: unknown;
+  logs_url?: unknown;
+  stats?: SessionStatsBlock;
+  // Legacy flat layout (pre-nested format)
+  total_cost?: unknown;
+  total_input_tokens?: unknown;
+  total_output_tokens?: unknown;
+  total_cached_input_tokens?: unknown;
+  total_cache_creation_input_tokens?: unknown;
+  by_model?: unknown;
+}
+
+function extractStatsBlock(data: SessionStatsFile): SessionStatsBlock {
+  if (data.stats && typeof data.stats === 'object') {
+    return data.stats;
+  }
+  return data;
 }
 
 export interface SessionDescriptor {
@@ -116,17 +141,19 @@ export function readSessionStats(dir: string): SessionStatsMetrics | null {
     return null;
   }
 
+  const stats = extractStatsBlock(data);
+
   const metrics: SessionStatsMetrics = {
-    totalCost: costToUsd(data.total_cost),
-    totalInputTokens: asNumber(data.total_input_tokens),
-    totalOutputTokens: asNumber(data.total_output_tokens),
-    cacheReadTokens: asNumber(data.total_cached_input_tokens),
-    cacheCreationTokens: asNumber(data.total_cache_creation_input_tokens),
+    totalCost: costToUsd(stats.total_cost),
+    totalInputTokens: asNumber(stats.total_input_tokens),
+    totalOutputTokens: asNumber(stats.total_output_tokens),
+    cacheReadTokens: asNumber(stats.total_cached_input_tokens),
+    cacheCreationTokens: asNumber(stats.total_cache_creation_input_tokens),
     apiDurationMs: 0,
     byModel: {},
   };
 
-  const byModel = Array.isArray(data.by_model) ? data.by_model as SessionStatsByModelEntry[] : [];
+  const byModel = Array.isArray(stats.by_model) ? stats.by_model as SessionStatsByModelEntry[] : [];
   for (const entry of byModel) {
     const provider = typeof entry.provider === 'string' ? entry.provider : 'unknown';
     const model = typeof entry.model === 'string' ? entry.model : 'unknown';

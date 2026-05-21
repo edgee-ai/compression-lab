@@ -1,4 +1,22 @@
 {
+  "hooks": {
+    "PreToolUse": [],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "edgee statusline claude doctor --warn-only"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "edgee statusline render",
+    "refreshInterval": 10
+  },
   "enabledPlugins": {
     "rust-analyzer-lsp@claude-plugins-official": true
   },

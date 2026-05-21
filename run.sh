@@ -22,6 +22,13 @@ echo "[1/8] Loading .env..."
 # shellcheck source=.env
 source "$ENV_FILE"
 
+# # Export Anthropic API key so Claude Code skips OAuth login
+# if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
+#   export ANTHROPIC_API_KEY
+# else
+#   echo "Warning: ANTHROPIC_API_KEY not set in .env — Claude will prompt for OAuth login"
+# fi
+
 # Generate random dir to put everything in
 RANDOM_NAME="$(openssl rand -hex 4)"
 SRC_DIR="$SCRIPT_DIR/cli"
