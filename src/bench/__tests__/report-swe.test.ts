@@ -211,6 +211,66 @@ describe('report-swe: tags + notes plumbing', () => {
   });
 });
 
+describe('report-swe: per-call breakdown table', () => {
+  // Build a RunResult with a non-empty `turns` array so we can verify the
+  // per-call section renders. Two calls per backend; different counts on
+  // each side to exercise the "—" filler.
+  const vTurns = [
+    { input: 6, cache_read: 24_877, cache_create: 11_367, output: 161 },
+    { input: 1, cache_read: 36_244, cache_create: 262, output: 315 },
+  ];
+  const eTurns = [
+    { input: 6, cache_read: 37_578, cache_create: 14_490, output: 146 },
+    { input: 1, cache_read: 41_389, cache_create: 14_675, output: 144 },
+    { input: 1, cache_read: 56_064, cache_create: 417, output: 209 },
+  ];
+
+  function mkRunWithTurns(turns: typeof vTurns | typeof eTurns): RunResult {
+    return {
+      sessionId: 'sid',
+      usage: aggregateTurns(turns),
+      turns: turns.slice(),
+      resultEvents: [],
+      rawTail: [],
+      diffPath: null,
+    };
+  }
+
+  it('renders one table per task with side-by-side per-call rows', () => {
+    const md = renderMarkdown({
+      config: loadConfig({}),
+      backendOrder: ['vanilla', 'edgee'],
+      tasksRun: ['t1'],
+      results: {
+        t1: {
+          vanilla: [mkRunWithTurns(vTurns)],
+          edgee: [mkRunWithTurns(eTurns)],
+        },
+      },
+      finishedAt: '2026-01-01T00:00:00.000Z',
+    });
+    expect(md).toContain('## Per-call breakdown');
+    expect(md).toContain('### t1');
+    // Verify the header columns match the spec
+    expect(md).toContain('| Call | v fresh | v cache_r | v cache_c | v out | v total |');
+    // Vanilla call-1 totals: 6 + 24877 + 11367 + 161 = 36,411
+    expect(md).toContain('36,411');
+    // Edgee call-3 should render in vanilla's column as "—"
+    expect(md).toMatch(/\| 3 \| — \| — \| — \| — \| — \|/);
+  });
+
+  it('skips the section entirely when no tasks have turns', () => {
+    const md = renderMarkdown({
+      config: loadConfig({}),
+      backendOrder: ['vanilla', 'edgee'],
+      tasksRun: [],
+      results: {},
+      finishedAt: '2026-01-01T00:00:00.000Z',
+    });
+    expect(md).not.toContain('## Per-call breakdown');
+  });
+});
+
 describe('report-swe: reportBasename', () => {
   const iso = '2026-06-19T14:30:02.734Z';
   it('without tags, just timestamp', () => {

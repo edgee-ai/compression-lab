@@ -351,6 +351,62 @@ function renderDeltas(rows: TaskMeansRow[]): string[] {
   return lines;
 }
 
+/**
+ * Per-call breakdown — one table per task showing each assistant API call's
+ * token consumption side-by-side for vanilla and edgee. In stats mode we show
+ * replicate 1 (call counts can differ between replicates, so an "average per
+ * call" wouldn't be meaningful). Mirrors what Python's bench prints to the
+ * terminal after each task. Optional — skipped if a task has no usable turns.
+ */
+function renderPerCallBreakdown(input: ReportInput): string[] {
+  const lines: string[] = [];
+  let anyRendered = false;
+  for (const taskId of input.tasksRun) {
+    const byBackend = input.results[taskId];
+    if (!byBackend) continue;
+    const vRuns = byBackend.vanilla ?? [];
+    const eRuns = byBackend.edgee ?? [];
+    if (vRuns.length === 0 && eRuns.length === 0) continue;
+
+    const vTurns = vRuns[0]?.turns ?? [];
+    const eTurns = eRuns[0]?.turns ?? [];
+    const nCalls = Math.max(vTurns.length, eTurns.length);
+    if (nCalls === 0) continue;
+
+    if (!anyRendered) {
+      lines.push(`## Per-call breakdown`);
+      lines.push(``);
+      lines.push(
+        input.config.statsMode
+          ? `_One table per task, showing replicate 1's per-API-call token consumption. (Call counts can differ between replicates, so we don't average — pick a single replicate to inspect.)_`
+          : `_Per-API-call token consumption, one table per task._`,
+      );
+      lines.push(``);
+      anyRendered = true;
+    }
+
+    lines.push(`### ${taskId}`);
+    lines.push(``);
+    lines.push(
+      `| Call | v fresh | v cache_r | v cache_c | v out | v total | e fresh | e cache_r | e cache_c | e out | e total |`,
+    );
+    lines.push(`|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|`);
+    for (let i = 0; i < nCalls; i++) {
+      const v = vTurns[i];
+      const e = eTurns[i];
+      const vCell = v
+        ? `${fmtInt(v.input)} | ${fmtInt(v.cache_read)} | ${fmtInt(v.cache_create)} | ${fmtInt(v.output)} | ${fmtInt(v.input + v.cache_read + v.cache_create + v.output)}`
+        : `— | — | — | — | —`;
+      const eCell = e
+        ? `${fmtInt(e.input)} | ${fmtInt(e.cache_read)} | ${fmtInt(e.cache_create)} | ${fmtInt(e.output)} | ${fmtInt(e.input + e.cache_read + e.cache_create + e.output)}`
+        : `— | — | — | — | —`;
+      lines.push(`| ${i + 1} | ${vCell} | ${eCell} |`);
+    }
+    lines.push(``);
+  }
+  return lines;
+}
+
 function renderStatsBlock(stats: StatsBlock, nTasks: number): string[] {
   const sig = (st: SignTestResult, totalDirection: string) =>
     `${st.nPositive}/${st.nPositive + st.nNegative} tasks ${totalDirection} edgee; p = ${formatFixed(st.pValue, 3)}`;
@@ -467,6 +523,7 @@ export function renderMarkdown(input: ReportInput): string {
     lines.push(...renderStatsBlock(input.stats, rows.length));
   }
   lines.push(...renderOverall(rows, input.backendOrder, input.config.statsMode));
+  lines.push(...renderPerCallBreakdown(input));
   lines.push(...renderSessionAppendix(input));
   lines.push(...renderPatchesList(input));
   return lines.join('\n');
