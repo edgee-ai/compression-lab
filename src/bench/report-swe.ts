@@ -76,6 +76,27 @@ function fmtSignedCost(x: number): string {
   return `${sign}$${formatFixed(Math.abs(x), 4)}`;
 }
 
+/**
+ * Format a fractional reduction as a signed percentage, e.g.,
+ *   0.21  → "+21.0%"  (edgee saved 21% relative to vanilla)
+ *  -0.08  → "-8.0%"   (edgee used 8% MORE than vanilla)
+ * The sign disambiguates direction so readers don't have to remember which
+ * way the metric goes.
+ */
+function fmtSignedPct(x: number): string {
+  if (!Number.isFinite(x)) return '—';
+  const sign = x >= 0 ? '+' : '';
+  return `${sign}${formatFixed(x * 100, 1)}%`;
+}
+
+/** Star a p-value: ★ for p<0.05, † for 0.05≤p<0.10, '' otherwise. */
+function pSignifier(p: number | null): string {
+  if (p === null || !Number.isFinite(p)) return '';
+  if (p < 0.05) return '★';
+  if (p < 0.1) return '†';
+  return '';
+}
+
 // ──────── Report data shapes ─────────────────────────────────────────────
 
 export interface ReportInput {
@@ -154,6 +175,69 @@ function buildTaskMeansRows(input: ReportInput): TaskMeansRow[] {
   return rows;
 }
 
+// ──────── Headline %-reduction recap ─────────────────────────────────────
+
+/**
+ * Per-metric reduction summary. Each value is a fraction (0.21 → 21%):
+ *   - `aggregate`: weighted by absolute size — (Σ_vanilla - Σ_edgee) / Σ_vanilla
+ *   - `perTaskValues`: per-task (1 - edgee/vanilla); tasks where vanilla = 0 are dropped
+ *   - `mean`: arithmetic mean of perTaskValues (equal-weight per task)
+ *   - `median`: median of perTaskValues
+ *
+ * Positive value = edgee REDUCED the metric vs vanilla. Negative = edgee used MORE.
+ */
+export interface PercentageReductions {
+  aggregate: number;
+  perTaskValues: number[];
+  mean: number;
+  median: number;
+}
+
+function reductionsFor(
+  rows: TaskMeansRow[],
+  pick: (u: UsageDict) => number,
+): PercentageReductions {
+  let sumV = 0;
+  let sumE = 0;
+  const perTask: number[] = [];
+  for (const r of rows) {
+    const v = pick(r.vanilla);
+    const e = pick(r.edgee);
+    sumV += v;
+    sumE += e;
+    if (v > 0) perTask.push(1 - e / v);
+  }
+  const sorted = perTask.slice().sort((a, b) => a - b);
+  const n = sorted.length;
+  const median =
+    n === 0
+      ? Number.NaN
+      : n % 2 === 1
+        ? sorted[(n - 1) / 2]
+        : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+  return {
+    aggregate: sumV > 0 ? (sumV - sumE) / sumV : Number.NaN,
+    perTaskValues: perTask,
+    mean: n > 0 ? perTask.reduce((a, b) => a + b, 0) / n : Number.NaN,
+    median,
+  };
+}
+
+/** Headline reductions for the three metrics the bench reports on. */
+export interface HeadlineReductions {
+  cost: PercentageReductions;
+  totalTokens: PercentageReductions;
+  outputTokens: PercentageReductions;
+}
+
+export function computeHeadlineReductions(rows: TaskMeansRow[]): HeadlineReductions {
+  return {
+    cost: reductionsFor(rows, costUsd),
+    totalTokens: reductionsFor(rows, totalTokens),
+    outputTokens: reductionsFor(rows, u => u.output),
+  };
+}
+
 // ──────── Markdown emission ──────────────────────────────────────────────
 
 function renderConfigSnapshot(input: ReportInput): string[] {
@@ -180,6 +264,44 @@ function renderConfigSnapshot(input: ReportInput): string[] {
     ``,
   ];
   return lines;
+}
+
+function renderRecap(
+  reductions: HeadlineReductions,
+  stats: StatsBlock | undefined,
+  nTasks: number,
+): string[] {
+  // Pull p-values from the stats block if we have it. `stats` requires the
+  // run to have been in stats mode (REPLICATES > 1). Without it, sign-test
+  // p-values aren't computed; the row shows "—".
+  const pCost = stats?.signTestCost.pValue ?? null;
+  const pTokens = stats?.signTestTokens.pValue ?? null;
+  const pOutput = stats?.signTestOutput.pValue ?? null;
+
+  const sigLegend = stats
+    ? '★ = p<0.05 ★, † = 0.05≤p<0.10 (trending), blank = not significant.'
+    : '_(no stats — re-run with REPLICATES > 1 for sign-test p-values.)_';
+
+  const fmtSign = (st: SignTestResult | undefined) =>
+    st ? `${st.nPositive}/${st.nPositive + st.nNegative}` : '—';
+
+  return [
+    `## Recap — edgee vs vanilla, reduction %`,
+    ``,
+    `_Positive = edgee REDUCED the metric. Negative = edgee used MORE._`,
+    `_Aggregate = (Σ vanilla − Σ edgee) / Σ vanilla. Mean / median = equal-weight per task._`,
+    ``,
+    `| Metric | Aggregate | Mean per task | Median per task | edgee wins | sign-test p | sig |`,
+    `|---|---:|---:|---:|:---:|---:|:---:|`,
+    `| **Cost ($)** | ${fmtSignedPct(reductions.cost.aggregate)} | ${fmtSignedPct(reductions.cost.mean)} | ${fmtSignedPct(reductions.cost.median)} | ${fmtSign(stats?.signTestCost)} | ${pCost === null ? '—' : formatFixed(pCost, 3)} | ${pSignifier(pCost)} |`,
+    `| **Total tokens** | ${fmtSignedPct(reductions.totalTokens.aggregate)} | ${fmtSignedPct(reductions.totalTokens.mean)} | ${fmtSignedPct(reductions.totalTokens.median)} | ${fmtSign(stats?.signTestTokens)} | ${pTokens === null ? '—' : formatFixed(pTokens, 3)} | ${pSignifier(pTokens)} |`,
+    `| **Output tokens** | ${fmtSignedPct(reductions.outputTokens.aggregate)} | ${fmtSignedPct(reductions.outputTokens.mean)} | ${fmtSignedPct(reductions.outputTokens.median)} | ${fmtSign(stats?.signTestOutput)} | ${pOutput === null ? '—' : formatFixed(pOutput, 3)} | ${pSignifier(pOutput)} |`,
+    ``,
+    sigLegend,
+    ``,
+    `Computed across ${nTasks} task(s) with non-zero vanilla data on each metric.`,
+    ``,
+  ];
 }
 
 function renderPerTaskSummary(rows: TaskMeansRow[], statsMode: boolean): string[] {
@@ -315,12 +437,14 @@ function renderPatchesList(input: ReportInput): string[] {
 /** Build the full markdown report text. */
 export function renderMarkdown(input: ReportInput): string {
   const rows = buildTaskMeansRows(input);
+  const reductions = computeHeadlineReductions(rows);
   const lines: string[] = [
     `# SWE-bench Token Bench`,
     ``,
     input.notes ?? '_Comparison of edgee gateway vs vanilla Claude Code on SWE-bench Lite tasks._',
     ``,
     ...renderConfigSnapshot(input),
+    ...renderRecap(reductions, input.stats, rows.length),
     ...renderPerTaskSummary(rows, input.config.statsMode),
     ...renderDeltas(rows),
   ];
@@ -336,6 +460,7 @@ export function renderMarkdown(input: ReportInput): string {
 /** Build the lossless JSON companion. */
 export function buildJsonReport(input: ReportInput): Record<string, unknown> {
   const rows = buildTaskMeansRows(input);
+  const reductions = computeHeadlineReductions(rows);
   return {
     schema_version: 1,
     finished_at: input.finishedAt,
@@ -346,6 +471,7 @@ export function buildJsonReport(input: ReportInput): Record<string, unknown> {
     tasks_run: input.tasksRun,
     results: input.results,
     task_means: rows,
+    reductions,
     stats: input.stats ?? null,
   };
 }
