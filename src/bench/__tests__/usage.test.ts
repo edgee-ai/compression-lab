@@ -6,6 +6,8 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+// The fixtureUrl helper resolves the fixture path relative to this file.
+const here = path.dirname(fileURLToPath(import.meta.url));
 import { aggregateTurns, costUsd, meanUsage, totalTokens, zeroUsage } from '../usage.js';
 import { PRICING } from '../config.js';
 
@@ -111,18 +113,35 @@ describe('usage: costUsd at Opus 4.7 list pricing', () => {
   });
 
   it('matches the Python bench cost on a real session', () => {
-    // django__django-16408 vanilla rep 1 — large fixture session. The
-    // per-task-deltas fixture has the same vanilla mean usage. We
-    // compute its cost via TS and check it matches Python's value.
-    const u = {
-      input: 0,
-      cache_read: 0,
-      cache_create: 0,
-      output: 0,
-    };
-    // Trivially zero; the meaningful match-with-Python check is in the
-    // sessions fixture round-trip done by aggregateTurns above. The cost
-    // formula is closed-form so analytic + zero are enough here.
-    expect(costUsd(u)).toBe(0);
+    // Trivially zero; richer round-trip is in the fixture diff test below.
+    expect(costUsd({ input: 0, cache_read: 0, cache_create: 0, output: 0 })).toBe(0);
   });
+});
+
+// ──────── Bit-exact cost match against Python on real fixture data ──────
+
+interface PerTaskDeltasFixture {
+  per_task: Array<{
+    task_id: string;
+    vanilla_mean: { input: number; cache_read: number; cache_create: number; output: number; calls: number };
+    edgee_mean: { input: number; cache_read: number; cache_create: number; output: number; calls: number };
+    delta_cost_usd: number;
+  }>;
+}
+
+describe('usage: costUsd matches Python bit-exact on the 13 brevity-run tasks', () => {
+  const fixturePath = path.resolve(here, '../../../test/fixtures/stats/per-task-deltas.json');
+  const fx: PerTaskDeltasFixture = JSON.parse(readFileSync(fixturePath, 'utf8'));
+
+  for (const task of fx.per_task) {
+    it(`${task.task_id} — TS cost delta == Python cost delta`, () => {
+      const tsDelta = costUsd(task.vanilla_mean) - costUsd(task.edgee_mean);
+      // Both impls use IEEE-754 doubles and the same per-token-rate formula.
+      // The meanUsage() and costUsd() arithmetic should produce identical
+      // last-bit results given identical inputs. If a future input ever
+      // produces drift, this becomes a numeric-tolerance check; until then
+      // we assert bit-exact.
+      expect(tsDelta).toBe(task.delta_cost_usd);
+    });
+  }
 });

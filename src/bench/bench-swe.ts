@@ -257,12 +257,15 @@ function computeStats(opts: ComputeStatsOpts): StatsBlock {
   const cleanDeltaOutput = dropNonFinite(deltaOutput);
   const cleanDeltaCost = dropNonFinite(deltaCost);
 
-  // Bootstrap CIs (reset RNG between metrics for clean determinism per metric).
-  const seed = cfg.seed;
-  const ciTokenRatio = bootstrapCi(cleanRatios, median, cfg.bootstrapIters, createRng(seed));
-  const ciDeltaTokens = bootstrapCi(cleanDeltaTokens, median, cfg.bootstrapIters, createRng(seed));
-  const ciDeltaOutput = bootstrapCi(cleanDeltaOutput, median, cfg.bootstrapIters, createRng(seed));
-  const ciDeltaCost = bootstrapCi(cleanDeltaCost, median, cfg.bootstrapIters, createRng(seed));
+  // Bootstrap CIs — share the SAME rng across all four calls, in the same
+  // order as Python's bench (ratios → cost → total → output). Each call
+  // advances the RNG state, so the four sets of resamples are independent.
+  // (Earlier draft created fresh per-metric RNGs, which incorrectly made
+  // the resamples correlated across metrics.)
+  const ciTokenRatio = bootstrapCi(cleanRatios, median, cfg.bootstrapIters, rng);
+  const ciDeltaCost = bootstrapCi(cleanDeltaCost, median, cfg.bootstrapIters, rng);
+  const ciDeltaTokens = bootstrapCi(cleanDeltaTokens, median, cfg.bootstrapIters, rng);
+  const ciDeltaOutput = bootstrapCi(cleanDeltaOutput, median, cfg.bootstrapIters, rng);
 
   // Sign tests.
   const signTestTokens = signTestTwoSided(cleanDeltaTokens);
@@ -285,7 +288,6 @@ function computeStats(opts: ComputeStatsOpts): StatsBlock {
     }
   }
   const withinTaskCvMean = cvs.length > 0 ? mean(cvs) : 0;
-  void rng; // currently not used here; placeholder if we ever need it
 
   return {
     medianTokenRatio: median(cleanRatios),
