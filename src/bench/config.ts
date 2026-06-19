@@ -112,6 +112,43 @@ export interface BenchConfig {
   readonly perTurnTimeoutS: number;
   /** When set, load SWE-bench Lite from a local file instead of HuggingFace. */
   readonly sweLitePathOverride: string | null;
+  /**
+   * Slugified, deduped, sorted set of tags describing the gateway/strategy
+   * configuration for this run (e.g. `["brevity", "tsr"]`). Captured from
+   * the TAGS env var. Surfaced in the report filename and the Configuration
+   * block so future-you knows what was active on the gateway side without
+   * having to crack open git history.
+   */
+  readonly tags: readonly string[];
+  /** Free-text note (NOTES env var). Renders next to the tags in the report. */
+  readonly notes: string;
+}
+
+/** Lowercase, replace non-[a-z0-9_] runs with single `-`, trim leading/trailing `-`. */
+export function slugifyTag(raw: string): string {
+  return raw
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Parse the TAGS env var: comma-separated, slugified, deduped, sorted.
+ *
+ * Splits ONLY on commas so multi-word tags work without quoting:
+ *   TAGS="Tool Trimming, Output Brevity"
+ *     → ["output-brevity", "tool-trimming"]
+ *
+ * Empty strings are dropped.
+ */
+export function parseTags(raw: string | undefined): string[] {
+  if (!raw) return [];
+  const set = new Set<string>();
+  for (const piece of raw.split(',')) {
+    const slug = slugifyTag(piece);
+    if (slug) set.add(slug);
+  }
+  return [...set].sort();
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): BenchConfig {
@@ -137,6 +174,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BenchConfig {
     statsMode: replicates > 1,
     perTurnTimeoutS: PER_TURN_TIMEOUT_S,
     sweLitePathOverride: env.BENCH_SWE_LITE_PATH ?? null,
+    tags: parseTags(env.TAGS),
+    notes: (env.NOTES ?? '').trim(),
   });
 }
 

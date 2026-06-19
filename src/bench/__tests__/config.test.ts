@@ -1,7 +1,15 @@
 // Config / env-var parsing tests.
 
 import { describe, expect, it } from 'vitest';
-import { BACKENDS, FROZEN_TASKS, PRICING, loadConfig, resolveBackendOrder } from '../config.js';
+import {
+  BACKENDS,
+  FROZEN_TASKS,
+  PRICING,
+  loadConfig,
+  parseTags,
+  resolveBackendOrder,
+  slugifyTag,
+} from '../config.js';
 
 describe('config: PRICING constants match the Opus 4.7 list pricing', () => {
   it('input $5/M, output $25/M, cache_read $0.50/M, cache_create $10/M', () => {
@@ -78,6 +86,44 @@ describe('config: loadConfig env-var parsing', () => {
     expect(a.seed).toBeGreaterThanOrEqual(0);
     // Either way, both seeds should be sensible 32-bit non-negatives.
     expect(b.seed).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('config: tag parsing', () => {
+  it('slugifyTag lowercases, replaces non-[a-z0-9_], trims dashes', () => {
+    expect(slugifyTag('Brevity')).toBe('brevity');
+    expect(slugifyTag('Tool Surface Reduction')).toBe('tool-surface-reduction');
+    expect(slugifyTag('  brevity-v2 ')).toBe('brevity-v2');
+    expect(slugifyTag('enable_tool_search')).toBe('enable_tool_search');
+    expect(slugifyTag('!!??')).toBe('');
+  });
+
+  it('parseTags splits on commas only, dedupes, sorts', () => {
+    expect(parseTags('brevity,tool-surface-reduction')).toEqual([
+      'brevity',
+      'tool-surface-reduction',
+    ]);
+    expect(parseTags('brevity,brevity,brevity')).toEqual(['brevity']);
+    expect(parseTags('a, b,  c')).toEqual(['a', 'b', 'c']);
+    expect(parseTags('')).toEqual([]);
+    expect(parseTags(undefined)).toEqual([]);
+    // Multi-word tags survive — commas are the only separator
+    expect(parseTags('Tool Trimming, Output Brevity')).toEqual([
+      'output-brevity',
+      'tool-trimming',
+    ]);
+  });
+
+  it('loadConfig surfaces tags + notes', () => {
+    const c = loadConfig({ TAGS: 'brevity,tsr', NOTES: 'first run after rebuild' });
+    expect(c.tags).toEqual(['brevity', 'tsr']);
+    expect(c.notes).toBe('first run after rebuild');
+  });
+
+  it('loadConfig defaults: empty tags, empty notes', () => {
+    const c = loadConfig({});
+    expect(c.tags).toEqual([]);
+    expect(c.notes).toBe('');
   });
 });
 

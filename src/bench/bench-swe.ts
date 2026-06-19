@@ -160,7 +160,6 @@ async function main(): Promise<number> {
     results,
     finishedAt,
     stats,
-    gatewayLabel: process.env.GATEWAY_LABEL ?? null,
   };
   const { mdPath, jsonPath } = await writeReports(REPORTS_DIR, reportInput);
   console.log();

@@ -3,9 +3,14 @@
 // table is the main user-facing artifact.
 
 import { describe, expect, it } from 'vitest';
-import { computeHeadlineReductions, formatFixed, renderMarkdown } from '../report-swe.js';
+import {
+  computeHeadlineReductions,
+  formatFixed,
+  renderMarkdown,
+  reportBasename,
+} from '../report-swe.js';
 import { loadConfig } from '../config.js';
-import { Task, UsageDict, RunResult } from '../types.js';
+import { UsageDict, RunResult } from '../types.js';
 import { aggregateTurns } from '../usage.js';
 
 describe('report-swe: formatFixed (banker\'s rounding, matches Python format(x, ".Nf"))', () => {
@@ -172,5 +177,58 @@ describe('report-swe: renderMarkdown contains the recap table', () => {
     expect(md).toContain('| **Output tokens** |');
     // Without stats, the sign-test p column shows '—' and sig column is blank.
     expect(md).toMatch(/edgee wins.*sign-test p.*sig/);
+  });
+});
+
+describe('report-swe: tags + notes plumbing', () => {
+  it('renders a tags callout when TAGS is set', () => {
+    const md = renderMarkdown({
+      config: loadConfig({ TAGS: 'brevity,TSR', NOTES: 'fresh edgee rebuild' }),
+      backendOrder: ['vanilla', 'edgee'],
+      tasksRun: [],
+      results: {},
+      finishedAt: '2026-01-01T00:00:00.000Z',
+    });
+    expect(md).toContain('🏷 **Tags:** `brevity` `tsr`');
+    expect(md).toContain('📝 **Notes:** fresh edgee rebuild');
+    // Also surfaces in the Configuration table.
+    expect(md).toContain('| Tags | `brevity`, `tsr` |');
+    expect(md).toContain('| Notes | fresh edgee rebuild |');
+  });
+
+  it('shows "(none)" placeholders when no tags or notes are set', () => {
+    const md = renderMarkdown({
+      config: loadConfig({}),
+      backendOrder: ['vanilla', 'edgee'],
+      tasksRun: [],
+      results: {},
+      finishedAt: '2026-01-01T00:00:00.000Z',
+    });
+    expect(md).toContain('| Tags | _(none — set via TAGS env var)_ |');
+    expect(md).toContain('| Notes | _(none — set via NOTES env var)_ |');
+    // The 🏷 callout block should NOT appear when there are no tags/notes.
+    expect(md).not.toContain('🏷');
+  });
+});
+
+describe('report-swe: reportBasename', () => {
+  const iso = '2026-06-19T14:30:02.734Z';
+  it('without tags, just timestamp', () => {
+    expect(reportBasename(iso, [])).toBe('swe-2026-06-19T14-30-02-734Z');
+  });
+  it('with one tag, appends with --', () => {
+    expect(reportBasename(iso, ['brevity'])).toBe('swe-2026-06-19T14-30-02-734Z--brevity');
+  });
+  it('with multiple tags, joins with --', () => {
+    expect(reportBasename(iso, ['brevity', 'tsr'])).toBe(
+      'swe-2026-06-19T14-30-02-734Z--brevity--tsr',
+    );
+  });
+  it('defensively re-slugifies in case a non-slug snuck through', () => {
+    expect(reportBasename(iso, ['Brevity (v2)' as string])).toBe(
+      'swe-2026-06-19T14-30-02-734Z--Brevity--v2-',
+    );
+    // Note: the parseTags layer should prevent this case from ever reaching
+    // reportBasename in production. This test just verifies the defense.
   });
 });

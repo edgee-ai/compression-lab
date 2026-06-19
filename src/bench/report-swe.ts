@@ -109,12 +109,8 @@ export interface ReportInput {
   results: Record<string, Record<string, RunResult[]>>;
   /** When the bench completed (ISO timestamp). */
   finishedAt: string;
-  /** What this run was for, free text. */
-  notes?: string;
   /** Statistical analysis output, only populated in stats mode. */
   stats?: StatsBlock;
-  /** Compression strategy / gateway state at the time of run, free text label. */
-  gatewayLabel?: string;
 }
 
 export interface StatsBlock {
@@ -240,21 +236,39 @@ export function computeHeadlineReductions(rows: TaskMeansRow[]): HeadlineReducti
 
 // ──────── Markdown emission ──────────────────────────────────────────────
 
+function renderTagsCallout(input: ReportInput): string[] {
+  const tags = input.config.tags;
+  const notes = input.config.notes;
+  if (tags.length === 0 && !notes) return [];
+  const lines: string[] = [];
+  if (tags.length > 0) {
+    const tagBadges = tags.map(t => `\`${t}\``).join(' ');
+    lines.push(`> 🏷 **Tags:** ${tagBadges}`);
+  }
+  if (notes) {
+    lines.push(`> 📝 **Notes:** ${notes}`);
+  }
+  lines.push(``);
+  return lines;
+}
+
 function renderConfigSnapshot(input: ReportInput): string[] {
   const c = input.config;
+  const tagsCell = c.tags.length > 0 ? c.tags.map(t => `\`${t}\``).join(', ') : '_(none — set via TAGS env var)_';
   const lines = [
     `## Configuration`,
     ``,
     `| Field | Value |`,
     `|---|---|`,
     `| Mode | ${c.agentMode ? 'AGENT' : 'scripted (3 prompts)'} |`,
+    `| Tags | ${tagsCell} |`,
+    `| Notes | ${c.notes || '_(none — set via NOTES env var)_'} |`,
     `| Tasks attempted | ${input.tasksRun.length} |`,
     `| Replicates per (task, backend) | ${c.replicates} |`,
     `| Shuffle | ${c.shuffle ? 'yes' : 'no'} |`,
     `| Seed | ${c.seed} |`,
     `| Bootstrap iterations | ${c.bootstrapIters} |`,
     `| Backend order | ${input.backendOrder.join(', ')} |`,
-    `| Gateway strategy | ${input.gatewayLabel ?? '(unspecified)'} |`,
     `| Finished | ${input.finishedAt} |`,
     ``,
     `> **Known divergences from the Python bench** (documented in the plan):`,
@@ -441,8 +455,9 @@ export function renderMarkdown(input: ReportInput): string {
   const lines: string[] = [
     `# SWE-bench Token Bench`,
     ``,
-    input.notes ?? '_Comparison of edgee gateway vs vanilla Claude Code on SWE-bench Lite tasks._',
+    '_Comparison of edgee gateway vs vanilla Claude Code on SWE-bench Lite tasks._',
     ``,
+    ...renderTagsCallout(input),
     ...renderConfigSnapshot(input),
     ...renderRecap(reductions, input.stats, rows.length),
     ...renderPerTaskSummary(rows, input.config.statsMode),
@@ -462,10 +477,10 @@ export function buildJsonReport(input: ReportInput): Record<string, unknown> {
   const rows = buildTaskMeansRows(input);
   const reductions = computeHeadlineReductions(rows);
   return {
-    schema_version: 1,
+    schema_version: 2,
     finished_at: input.finishedAt,
-    notes: input.notes ?? null,
-    gateway_label: input.gatewayLabel ?? null,
+    tags: input.config.tags,
+    notes: input.config.notes,
     config: input.config,
     backend_order: input.backendOrder,
     tasks_run: input.tasksRun,
@@ -481,12 +496,28 @@ export interface WriteReportsResult {
   jsonPath: string;
 }
 
-/** Write the markdown + JSON reports to `reports/swe-<ISO>.{md,json}`. */
+/**
+ * Build the basename for the per-run report files. Tags are joined with `--`
+ * so the resulting filename is sortable AND discoverable by tag:
+ *   swe-2026-06-19T14-30-02-734Z--brevity--tsr.md
+ *
+ * Without tags, just `swe-<ISO>.{md,json}` to keep older runs clean.
+ * Exported for testing.
+ */
+export function reportBasename(finishedAtIso: string, tags: readonly string[]): string {
+  const iso = finishedAtIso.replace(/[:.]/g, '-');
+  if (tags.length === 0) return `swe-${iso}`;
+  // Tags are already slugified by parseTags, but be defensive.
+  const tagPart = tags.map(t => t.replace(/[^a-z0-9_-]/gi, '-')).join('--');
+  return `swe-${iso}--${tagPart}`;
+}
+
+/** Write the markdown + JSON reports to `reports/swe-<ISO>[--<tags>].{md,json}`. */
 export async function writeReports(reportsDir: string, input: ReportInput): Promise<WriteReportsResult> {
   await mkdir(reportsDir, { recursive: true });
-  const iso = input.finishedAt.replace(/[:.]/g, '-');
-  const mdPath = path.join(reportsDir, `swe-${iso}.md`);
-  const jsonPath = path.join(reportsDir, `swe-${iso}.json`);
+  const base = reportBasename(input.finishedAt, input.config.tags);
+  const mdPath = path.join(reportsDir, `${base}.md`);
+  const jsonPath = path.join(reportsDir, `${base}.json`);
   await writeFile(mdPath, renderMarkdown(input));
   await writeFile(jsonPath, JSON.stringify(buildJsonReport(input), null, 2));
   return { mdPath, jsonPath };
