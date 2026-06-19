@@ -1,14 +1,27 @@
 {
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "analyze": "tsx src/analyze.ts",
-    "analyze-full": "tsx src/analyze-full.ts"
+    "analyze-full": "tsx src/analyze-full.ts",
+    "bench:swe": "tsx src/bench/bench-swe.ts",
+    "bench:swe:agent": "AGENT_MODE=1 tsx src/bench/bench-swe.ts",
+    "bench:swe:stats": "REPLICATES=3 SHUFFLE=1 tsx src/bench/bench-swe.ts",
+    "analyze-swe": "tsx src/bench/analyze-swe.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "edgee": "^0.1.6"
+    "edgee": "^0.1.6",
+    "fast-glob": "^3.3.2",
+    "hyparquet": "^1.13.0",
+    "random-js": "^2.1.0"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "tsx": "^4.19.2",
-    "@types/node": "^22.0.0"
+    "vitest": "^2.1.0"
   }
 }

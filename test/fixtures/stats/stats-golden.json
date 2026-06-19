@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "source": "brevity-13 random-task run; computed by bench_tokens.py functions",
+  "descriptive": {
+    "ratios": {
+      "name": "ratios",
+      "values": [
+        1.2100519167291117,
+        0.7051244989623286,
+        1.0103051652544999,
+        0.8226779008162237,
+        0.56702923925766,
+        1.2972714525415938,
+        0.6280819781558704,
+        0.7593149086903894,
+        0.5465711544987079,
+        0.7899077192242406,
+        0.8154943324460301,
+        0.9276424230092984,
+        0.7261068698008112
+      ],
+      "descriptive": {
+        "n": 13,
+        "mean": 0.8311984276451359,
+        "median": 0.7899077192242406,
+        "stdev": 0.22882294594614144
+      },
+      "bootstrap": {
+        "iters": 10000,
+        "seed": 42,
+        "statistic": "median",
+        "ci_lo": 0.7051244989623286,
+        "ci_hi": 0.9276424230092984,
+        "rng_impl": "cpython random.Random(seed) \u2014 Mersenne Twister",
+        "note": "TS port uses its own MT19937 (random-js). CI endpoints will differ by ~1% (Monte Carlo error); this is the documented RNG divergence."
+      }
+    },
+    "output_deltas": {
+      "name": "output_deltas",
+      "values": [
+        45.0,
+        1232.6666666666665,
+        16.66666666666606,
+        1799.6666666666665,
+        988.0,
+        71.0,
+        1042.6666666666665,
+        1846.333333333333,
+        632.6666666666667,
+        366.3333333333335,
+        5356.333333333336,
+        5799.333333333334,
+        1317.0000000000005
+      ],
+      "descriptive": {
+        "n": 13,
+        "mean": 1577.9743589743593,
+        "median": 1042.6666666666665,
+        "stdev": 1881.031314158089
+      },
+      "bootstrap": {
+        "iters": 10000,
+        "seed": 42,
+        "statistic": "median",
+        "ci_lo": 366.3333333333335,
+        "ci_hi": 1799.6666666666665,
+        "rng_impl": "cpython random.Random(seed) \u2014 Mersenne Twister",
+        "note": "TS port uses its own MT19937 (random-js). CI endpoints will differ by ~1% (Monte Carlo error); this is the documented RNG divergence."
+      }
+    },
+    "total_deltas": {
+      "name": "total_deltas",
+      "values": [
+        -26069.333333333314,
+        136686.00000000012,
+        -6207.666666666628,
+        125677.33333333337,
+        179283.66666666666,
+        -238644.66666666663,
+        212654.66666666663,
+        248822.33333333337,
+        92647.00000000001,
+        89981.33333333337,
+        621486.0000000005,
+        139523.6666666665,
+        260414.66666666663
+      ],
+      "descriptive": {
+        "n": 13,
+        "mean": 141250.38461538465,
+        "median": 136686.00000000012,
+        "stdev": 196269.44769560525
+      },
+      "bootstrap": {
+        "iters": 10000,
+        "seed": 42,
+        "statistic": "median",
+        "ci_lo": 89981.33333333337,
+        "ci_hi": 212654.66666666663,
+        "rng_impl": "cpython random.Random(seed) \u2014 Mersenne Twister",
+        "note": "TS port uses its own MT19937 (random-js). CI endpoints will differ by ~1% (Monte Carlo error); this is the documented RNG divergence."
+      }
+    },
+    "cost_deltas": {
+      "name": "cost_deltas",
+      "values": [
+        -0.05935600000000002,
+        0.13501300000000005,
+        0.027523999999999882,
+        0.17840483333333335,
+        0.17546700000000004,
+        -0.0887190000000001,
+        0.18245533333333336,
+        0.24127683333333338,
+        0.09706349999999997,
+        0.08316349999999995,
+        0.5588284999999997,
+        0.30163933333333337,
+        0.26145816666666666
+      ],
+      "descriptive": {
+        "n": 13,
+        "mean": 0.1610937692307692,
+        "median": 0.17546700000000004,
+        "stdev": 0.1671101181993885
+      },
+      "bootstrap": {
+        "iters": 10000,
+        "seed": 42,
+        "statistic": "median",
+        "ci_lo": 0.08316349999999995,
+        "ci_hi": 0.24127683333333338,
+        "rng_impl": "cpython random.Random(seed) \u2014 Mersenne Twister",
+        "note": "TS port uses its own MT19937 (random-js). CI endpoints will differ by ~1% (Monte Carlo error); this is the documented RNG divergence."
+      }
+    }
+  },
+  "sign_test_two_sided": {
+    "total_deltas": {
+      "p_value": 0.09228515625,
+      "n_positive": 10,
+      "n_negative": 3,
+      "n_ties": 0
+    },
+    "cost_deltas": {
+      "p_value": 0.0224609375,
+      "n_positive": 11,
+      "n_negative": 2,
+      "n_ties": 0
+    },
+    "output_deltas": {
+      "p_value": 0.000244140625,
+      "n_positive": 13,
+      "n_negative": 0,
+      "n_ties": 0
+    }
+  },
+  "comb_table": {
+    "comb(8,0..8)": [
+      1,
+      8,
+      28,
+      56,
+      70,
+      56,
+      28,
+      8,
+      1
+    ],
+    "comb(13,0..13)": [
+      1,
+      13,
+      78,
+      286,
+      715,
+      1287,
+      1716,
+      1716,
+      1287,
+      715,
+      286,
+      78,
+      13,
+      1
+    ],
+    "comb(20,0..20)": [
+      1,
+      20,
+      190,
+      1140,
+      4845,
+      15504,
+      38760,
+      77520,
+      125970,
+      167960,
+      184756,
+      167960,
+      125970,
+      77520,
+      38760,
+      15504,
+      4845,
+      1140,
+      190,
+      20,
+      1
+    ],
+    "comb(50,25)": 126410606437752
+  },
+  "validation_policy": {
+    "bit_exact_required": [
+      "descriptive.{ratios,output_deltas,total_deltas,cost_deltas}.descriptive.{n,mean,median,stdev}",
+      "sign_test_two_sided.{*}.{p_value,n_positive,n_negative,n_ties}",
+      "comb_table.*"
+    ],
+    "within_5_percent_required": [
+      "descriptive.{*}.bootstrap.{ci_lo,ci_hi}"
+    ],
+    "documented_divergences": [
+      "bootstrap CI endpoints \u2014 RNG sequence differs between CPython random.Random and JS MT19937 implementations"
+    ]
+  }
+}

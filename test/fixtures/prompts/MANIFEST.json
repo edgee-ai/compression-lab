@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "description": "Prompt-template golden snapshots. The TypeScript buildPrompts() must produce expected_prompts[i] byte-for-byte for each fixture. Cache-prefix matching across impls depends on this.",
+  "validation_policy": "Byte-exact match required. Compare `prompts[i] === expected_prompts[i]` (string equality, no normalization).",
+  "fixtures": [
+    {
+      "fixture": "astropy__astropy-12907-scripted-no-nonce.json",
+      "agent_mode": false,
+      "nonce": null,
+      "n_prompts": 3,
+      "first_prompt_chars": 1470,
+      "first_prompt_sha256_first10": "2316bc6b0f"
+    },
+    {
+      "fixture": "astropy__astropy-12907-scripted-with-nonce.json",
+      "agent_mode": false,
+      "nonce": "abc123def456",
+      "n_prompts": 3,
+      "first_prompt_chars": 1493,
+      "first_prompt_sha256_first10": "12026fec50"
+    },
+    {
+      "fixture": "astropy__astropy-12907-agent-no-nonce.json",
+      "agent_mode": true,
+      "nonce": null,
+      "n_prompts": 1,
+      "first_prompt_chars": 1659,
+      "first_prompt_sha256_first10": "cc6004f726"
+    },
+    {
+      "fixture": "astropy__astropy-12907-agent-with-nonce.json",
+      "agent_mode": true,
+      "nonce": "abc123def456",
+      "n_prompts": 1,
+      "first_prompt_chars": 1682,
+      "first_prompt_sha256_first10": "517aacd3d6"
+    }
+  ]
+}

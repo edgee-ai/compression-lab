@@ -10,7 +10,13 @@ _claude*
 _normal*
 _edgee*
 _rtk*
-report-*
+# Anchor `report-*` to repo root so it doesn't catch test files like
+# src/bench/__tests__/report-swe.test.ts.
+/report-*
 simulation-*
 claude-pro-usage.json
 article-*.md
+# SWE-bench port outputs
+patches/
+reports/swe-*.md
+reports/swe-*.json

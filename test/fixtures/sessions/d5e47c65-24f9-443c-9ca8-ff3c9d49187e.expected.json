@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "session_id": "d5e47c65-24f9-443c-9ca8-ff3c9d49187e",
+  "task": "django__django-11099",
+  "backend": "edgee",
+  "label": "small-edgee",
+  "why_picked": "Edgee-side small session \u2014 exercises any backend-specific JSONL shape differences (none expected, but worth checking).",
+  "turns": [
+    {
+      "input": 6,
+      "cache_read": 0,
+      "cache_create": 36567,
+      "output": 131
+    },
+    {
+      "input": 1,
+      "cache_read": 36567,
+      "cache_create": 476,
+      "output": 237
+    },
+    {
+      "input": 1,
+      "cache_read": 37043,
+      "cache_create": 735,
+      "output": 237
+    },
+    {
+      "input": 1,
+      "cache_read": 37778,
+      "cache_create": 340,
+      "output": 43
+    }
+  ],
+  "aggregated": {
+    "calls": 4,
+    "input": 9,
+    "cache_read": 111388,
+    "cache_create": 38118,
+    "output": 648
+  },
+  "total_tokens": 150163,
+  "n_assistant_unique_ids": 4
+}

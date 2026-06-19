@@ -1,0 +1,346 @@
+{
+  "schema_version": 1,
+  "source": "brevity-13 random-task run, SEED=42 RANDOM_TASKS=20 REPLICATES=3, Python bench at bench_tokens.py",
+  "n_tasks": 13,
+  "ratios": [
+    1.2100519167291117,
+    0.7051244989623286,
+    1.0103051652544999,
+    0.8226779008162237,
+    0.56702923925766,
+    1.2972714525415938,
+    0.6280819781558704,
+    0.7593149086903894,
+    0.5465711544987079,
+    0.7899077192242406,
+    0.8154943324460301,
+    0.9276424230092984,
+    0.7261068698008112
+  ],
+  "output_deltas": [
+    45.0,
+    1232.6666666666665,
+    16.66666666666606,
+    1799.6666666666665,
+    988.0,
+    71.0,
+    1042.6666666666665,
+    1846.333333333333,
+    632.6666666666667,
+    366.3333333333335,
+    5356.333333333336,
+    5799.333333333334,
+    1317.0000000000005
+  ],
+  "total_deltas": [
+    -26069.333333333314,
+    136686.00000000012,
+    -6207.666666666628,
+    125677.33333333337,
+    179283.66666666666,
+    -238644.66666666663,
+    212654.66666666663,
+    248822.33333333337,
+    92647.00000000001,
+    89981.33333333337,
+    621486.0000000005,
+    139523.6666666665,
+    260414.66666666663
+  ],
+  "cost_deltas": [
+    -0.05935600000000002,
+    0.13501300000000005,
+    0.027523999999999882,
+    0.17840483333333335,
+    0.17546700000000004,
+    -0.0887190000000001,
+    0.18245533333333336,
+    0.24127683333333338,
+    0.09706349999999997,
+    0.08316349999999995,
+    0.5588284999999997,
+    0.30163933333333337,
+    0.26145816666666666
+  ],
+  "per_task": [
+    {
+      "task_id": "django__django-11099",
+      "vanilla_mean": {
+        "calls": 3.3333333333333335,
+        "input": 8.333333333333334,
+        "cache_read": 110435.66666666667,
+        "cache_create": 12957.333333333334,
+        "output": 707.6666666666666
+      },
+      "edgee_mean": {
+        "calls": 4.0,
+        "input": 9.0,
+        "cache_read": 131557.66666666666,
+        "cache_create": 17949.0,
+        "output": 662.6666666666666
+      },
+      "delta_output_tokens": 45.0,
+      "delta_total_tokens": -26069.333333333314,
+      "delta_cost_usd": -0.05935600000000002,
+      "token_ratio_edgee_over_vanilla": 1.2100519167291117
+    },
+    {
+      "task_id": "django__django-11133",
+      "vanilla_mean": {
+        "calls": 11.666666666666666,
+        "input": 16.666666666666668,
+        "cache_read": 443172.0,
+        "cache_create": 17080.666666666668,
+        "output": 3268.6666666666665
+      },
+      "edgee_mean": {
+        "calls": 8.333333333333334,
+        "input": 13.333333333333334,
+        "cache_read": 311559.3333333333,
+        "cache_create": 13243.333333333334,
+        "output": 2036.0
+      },
+      "delta_output_tokens": 1232.6666666666665,
+      "delta_total_tokens": 136686.00000000012,
+      "delta_cost_usd": 0.13501300000000005,
+      "token_ratio_edgee_over_vanilla": 0.7051244989623286
+    },
+    {
+      "task_id": "django__django-11283",
+      "vanilla_mean": {
+        "calls": 13.666666666666666,
+        "input": 18.666666666666668,
+        "cache_read": 571157.0,
+        "cache_create": 25631.0,
+        "output": 5577.333333333333
+      },
+      "edgee_mean": {
+        "calls": 13.666666666666666,
+        "input": 18.666666666666668,
+        "cache_read": 580562.3333333334,
+        "cache_create": 22450.0,
+        "output": 5560.666666666667
+      },
+      "delta_output_tokens": 16.66666666666606,
+      "delta_total_tokens": -6207.666666666628,
+      "delta_cost_usd": 0.027523999999999882,
+      "token_ratio_edgee_over_vanilla": 1.0103051652544999
+    },
+    {
+      "task_id": "django__django-11422",
+      "vanilla_mean": {
+        "calls": 13.666666666666666,
+        "input": 18.666666666666668,
+        "cache_read": 669723.6666666666,
+        "cache_create": 33770.333333333336,
+        "output": 5239.0
+      },
+      "edgee_mean": {
+        "calls": 11.666666666666666,
+        "input": 16.666666666666668,
+        "cache_read": 553370.6666666666,
+        "cache_create": 26247.666666666668,
+        "output": 3439.3333333333335
+      },
+      "delta_output_tokens": 1799.6666666666665,
+      "delta_total_tokens": 125677.33333333337,
+      "delta_cost_usd": 0.17840483333333335,
+      "token_ratio_edgee_over_vanilla": 0.8226779008162237
+    },
+    {
+      "task_id": "django__django-12915",
+      "vanilla_mean": {
+        "calls": 10.0,
+        "input": 15.0,
+        "cache_read": 392019.3333333333,
+        "cache_create": 19687.666666666668,
+        "output": 2356.0
+      },
+      "edgee_mean": {
+        "calls": 6.0,
+        "input": 11.0,
+        "cache_read": 220212.0,
+        "cache_create": 13203.333333333334,
+        "output": 1368.0
+      },
+      "delta_output_tokens": 988.0,
+      "delta_total_tokens": 179283.66666666666,
+      "delta_cost_usd": 0.17546700000000004,
+      "token_ratio_edgee_over_vanilla": 0.56702923925766
+    },
+    {
+      "task_id": "django__django-13033",
+      "vanilla_mean": {
+        "calls": 17.333333333333332,
+        "input": 22.333333333333332,
+        "cache_read": 768743.0,
+        "cache_create": 27011.333333333332,
+        "output": 7007.0
+      },
+      "edgee_mean": {
+        "calls": 22.333333333333332,
+        "input": 27.333333333333332,
+        "cache_read": 1010494.3333333334,
+        "cache_create": 23970.666666666668,
+        "output": 6936.0
+      },
+      "delta_output_tokens": 71.0,
+      "delta_total_tokens": -238644.66666666663,
+      "delta_cost_usd": -0.0887190000000001,
+      "token_ratio_edgee_over_vanilla": 1.2972714525415938
+    },
+    {
+      "task_id": "django__django-13315",
+      "vanilla_mean": {
+        "calls": 13.666666666666666,
+        "input": 18.666666666666668,
+        "cache_read": 548730.0,
+        "cache_create": 19841.666666666668,
+        "output": 3188.0
+      },
+      "edgee_mean": {
+        "calls": 9.0,
+        "input": 189.33333333333334,
+        "cache_read": 342352.6666666667,
+        "cache_create": 14436.333333333334,
+        "output": 2145.3333333333335
+      },
+      "delta_output_tokens": 1042.6666666666665,
+      "delta_total_tokens": 212654.66666666663,
+      "delta_cost_usd": 0.18245533333333336,
+      "token_ratio_edgee_over_vanilla": 0.6280819781558704
+    },
+    {
+      "task_id": "django__django-13551",
+      "vanilla_mean": {
+        "calls": 22.0,
+        "input": 27.0,
+        "cache_read": 996030.6666666666,
+        "cache_create": 30153.666666666668,
+        "output": 7597.333333333333
+      },
+      "edgee_mean": {
+        "calls": 17.666666666666668,
+        "input": 22.666666666666668,
+        "cache_read": 756597.0,
+        "cache_create": 22615.666666666668,
+        "output": 5751.0
+      },
+      "delta_output_tokens": 1846.333333333333,
+      "delta_total_tokens": 248822.33333333337,
+      "delta_cost_usd": 0.24127683333333338,
+      "token_ratio_edgee_over_vanilla": 0.7593149086903894
+    },
+    {
+      "task_id": "django__django-14382",
+      "vanilla_mean": {
+        "calls": 5.333333333333333,
+        "input": 10.333333333333334,
+        "cache_read": 189321.33333333334,
+        "cache_create": 13937.666666666666,
+        "output": 1056.0
+      },
+      "edgee_mean": {
+        "calls": 3.0,
+        "input": 8.0,
+        "cache_read": 101017.66666666667,
+        "cache_create": 10229.333333333334,
+        "output": 423.3333333333333
+      },
+      "delta_output_tokens": 632.6666666666667,
+      "delta_total_tokens": 92647.00000000001,
+      "delta_cost_usd": 0.09706349999999997,
+      "token_ratio_edgee_over_vanilla": 0.5465711544987079
+    },
+    {
+      "task_id": "django__django-15851",
+      "vanilla_mean": {
+        "calls": 10.666666666666666,
+        "input": 15.666666666666666,
+        "cache_read": 407423.0,
+        "cache_create": 19050.0,
+        "output": 1805.6666666666667
+      },
+      "edgee_mean": {
+        "calls": 8.333333333333334,
+        "input": 13.333333333333334,
+        "cache_read": 320882.6666666667,
+        "cache_create": 15977.666666666666,
+        "output": 1439.3333333333333
+      },
+      "delta_output_tokens": 366.3333333333335,
+      "delta_total_tokens": 89981.33333333337,
+      "delta_cost_usd": 0.08316349999999995,
+      "token_ratio_edgee_over_vanilla": 0.7899077192242406
+    },
+    {
+      "task_id": "django__django-16408",
+      "vanilla_mean": {
+        "calls": 46.0,
+        "input": 51.0,
+        "cache_read": 3246358.0,
+        "cache_create": 81057.33333333333,
+        "output": 40918.0
+      },
+      "edgee_mean": {
+        "calls": 40.333333333333336,
+        "input": 47.0,
+        "cache_read": 2642531.0,
+        "cache_create": 68758.66666666667,
+        "output": 35561.666666666664
+      },
+      "delta_output_tokens": 5356.333333333336,
+      "delta_total_tokens": 621486.0000000005,
+      "delta_cost_usd": 0.5588284999999997,
+      "token_ratio_edgee_over_vanilla": 0.8154943324460301
+    },
+    {
+      "task_id": "django__django-16816",
+      "vanilla_mean": {
+        "calls": 33.333333333333336,
+        "input": 38.333333333333336,
+        "cache_read": 1860738.0,
+        "cache_create": 48175.0,
+        "output": 19301.0
+      },
+      "edgee_mean": {
+        "calls": 32.666666666666664,
+        "input": 37.666666666666664,
+        "cache_read": 1736466.0,
+        "cache_create": 38723.333333333336,
+        "output": 13501.666666666666
+      },
+      "delta_output_tokens": 5799.333333333334,
+      "delta_total_tokens": 139523.6666666665,
+      "delta_cost_usd": 0.30163933333333337,
+      "token_ratio_edgee_over_vanilla": 0.9276424230092984
+    },
+    {
+      "task_id": "django__django-17087",
+      "vanilla_mean": {
+        "calls": 19.666666666666668,
+        "input": 24.666666666666668,
+        "cache_read": 915965.0,
+        "cache_create": 30081.0,
+        "output": 4718.666666666667
+      },
+      "edgee_mean": {
+        "calls": 16.0,
+        "input": 21.0,
+        "cache_read": 667288.6666666666,
+        "cache_create": 19663.333333333332,
+        "output": 3401.6666666666665
+      },
+      "delta_output_tokens": 1317.0000000000005,
+      "delta_total_tokens": 260414.66666666663,
+      "delta_cost_usd": 0.26145816666666666,
+      "token_ratio_edgee_over_vanilla": 0.7261068698008112
+    }
+  ],
+  "pricing_per_million": {
+    "input": 5.0,
+    "output": 25.0,
+    "cache_read": 0.5,
+    "cache_create_1h_ttl": 10.0
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "session_id": "0f2790be-6aa7-481f-8781-c4bcdb189265",
+  "task": "django__django-11099",
+  "backend": "vanilla",
+  "label": "small-vanilla",
+  "why_picked": "Clean small session, 4 assistant messages with 1 duplicate-id pair. Validates the basic dedup path.",
+  "turns": [
+    {
+      "input": 6,
+      "cache_read": 24877,
+      "cache_create": 11401,
+      "output": 141
+    },
+    {
+      "input": 1,
+      "cache_read": 36278,
+      "cache_create": 486,
+      "output": 482
+    },
+    {
+      "input": 1,
+      "cache_read": 36764,
+      "cache_create": 1046,
+      "output": 92
+    }
+  ],
+  "aggregated": {
+    "calls": 3,
+    "input": 8,
+    "cache_read": 97919,
+    "cache_create": 12933,
+    "output": 715
+  },
+  "total_tokens": 111575,
+  "n_assistant_unique_ids": 3
+}

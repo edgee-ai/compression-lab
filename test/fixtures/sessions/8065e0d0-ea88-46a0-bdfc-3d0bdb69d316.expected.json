@@ -1,0 +1,235 @@
+{
+  "schema_version": 1,
+  "session_id": "8065e0d0-ea88-46a0-bdfc-3d0bdb69d316",
+  "task": "django__django-16408",
+  "backend": "vanilla",
+  "label": "large-with-many-dups",
+  "why_picked": "Large session: 55 assistant msgs but only 36 unique ids \u2014 19 duplicates that exercise the keep-highest-output-tokens rule. Primary stress test for the dedup logic.",
+  "turns": [
+    {
+      "input": 6,
+      "cache_read": 24877,
+      "cache_create": 11558,
+      "output": 181
+    },
+    {
+      "input": 1,
+      "cache_read": 36435,
+      "cache_create": 234,
+      "output": 127
+    },
+    {
+      "input": 1,
+      "cache_read": 36669,
+      "cache_create": 614,
+      "output": 104
+    },
+    {
+      "input": 1,
+      "cache_read": 37283,
+      "cache_create": 3417,
+      "output": 103
+    },
+    {
+      "input": 1,
+      "cache_read": 40700,
+      "cache_create": 465,
+      "output": 260
+    },
+    {
+      "input": 1,
+      "cache_read": 41165,
+      "cache_create": 326,
+      "output": 211
+    },
+    {
+      "input": 1,
+      "cache_read": 41491,
+      "cache_create": 1734,
+      "output": 149
+    },
+    {
+      "input": 1,
+      "cache_read": 43225,
+      "cache_create": 1345,
+      "output": 1840
+    },
+    {
+      "input": 1,
+      "cache_read": 44570,
+      "cache_create": 2328,
+      "output": 144
+    },
+    {
+      "input": 1,
+      "cache_read": 46898,
+      "cache_create": 1653,
+      "output": 3761
+    },
+    {
+      "input": 1,
+      "cache_read": 48551,
+      "cache_create": 3927,
+      "output": 147
+    },
+    {
+      "input": 1,
+      "cache_read": 52478,
+      "cache_create": 2161,
+      "output": 177
+    },
+    {
+      "input": 1,
+      "cache_read": 54639,
+      "cache_create": 171,
+      "output": 159
+    },
+    {
+      "input": 1,
+      "cache_read": 54810,
+      "cache_create": 232,
+      "output": 159
+    },
+    {
+      "input": 1,
+      "cache_read": 55042,
+      "cache_create": 153,
+      "output": 169
+    },
+    {
+      "input": 1,
+      "cache_read": 55195,
+      "cache_create": 219,
+      "output": 151
+    },
+    {
+      "input": 1,
+      "cache_read": 55414,
+      "cache_create": 329,
+      "output": 171
+    },
+    {
+      "input": 1,
+      "cache_read": 55743,
+      "cache_create": 1741,
+      "output": 695
+    },
+    {
+      "input": 1,
+      "cache_read": 57484,
+      "cache_create": 799,
+      "output": 185
+    },
+    {
+      "input": 1,
+      "cache_read": 58283,
+      "cache_create": 890,
+      "output": 2787
+    },
+    {
+      "input": 1,
+      "cache_read": 59173,
+      "cache_create": 2939,
+      "output": 3851
+    },
+    {
+      "input": 1,
+      "cache_read": 62112,
+      "cache_create": 4532,
+      "output": 1347
+    },
+    {
+      "input": 1,
+      "cache_read": 66644,
+      "cache_create": 1664,
+      "output": 2798
+    },
+    {
+      "input": 1,
+      "cache_read": 68308,
+      "cache_create": 3984,
+      "output": 561
+    },
+    {
+      "input": 1,
+      "cache_read": 72292,
+      "cache_create": 665,
+      "output": 398
+    },
+    {
+      "input": 1,
+      "cache_read": 72957,
+      "cache_create": 478,
+      "output": 151
+    },
+    {
+      "input": 1,
+      "cache_read": 73435,
+      "cache_create": 1777,
+      "output": 5079
+    },
+    {
+      "input": 1,
+      "cache_read": 75212,
+      "cache_create": 5890,
+      "output": 133
+    },
+    {
+      "input": 1,
+      "cache_read": 81102,
+      "cache_create": 1149,
+      "output": 156
+    },
+    {
+      "input": 1,
+      "cache_read": 82251,
+      "cache_create": 638,
+      "output": 120
+    },
+    {
+      "input": 1,
+      "cache_read": 82889,
+      "cache_create": 603,
+      "output": 108
+    },
+    {
+      "input": 1,
+      "cache_read": 83492,
+      "cache_create": 323,
+      "output": 104
+    },
+    {
+      "input": 1,
+      "cache_read": 83815,
+      "cache_create": 1147,
+      "output": 999
+    },
+    {
+      "input": 1,
+      "cache_read": 84962,
+      "cache_create": 1079,
+      "output": 133
+    },
+    {
+      "input": 1,
+      "cache_read": 86041,
+      "cache_create": 1639,
+      "output": 165
+    },
+    {
+      "input": 1,
+      "cache_read": 87680,
+      "cache_create": 474,
+      "output": 374
+    }
+  ],
+  "aggregated": {
+    "calls": 36,
+    "input": 41,
+    "cache_read": 2163317,
+    "cache_create": 63277,
+    "output": 28157
+  },
+  "total_tokens": 2254792,
+  "n_assistant_unique_ids": 36
+}
