@@ -125,6 +125,11 @@ async function main(): Promise<number> {
           `cache_create=${u.cache_create.toLocaleString()} out=${u.output.toLocaleString()} ` +
           `total=${tot.toLocaleString()} $${cost.toFixed(4)}`,
       );
+      // Print the session_id so the user can verify this session against
+      // ccusage in real time, without having to wait for the report.
+      if (result.sessionId !== null) {
+        console.log(`    sid → ${result.sessionId}`);
+      }
       if (result.diffPath !== null) {
         console.log(`    diff → ${path.relative(REPO_ROOT, result.diffPath)}`);
       }
