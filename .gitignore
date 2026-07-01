@@ -16,7 +16,13 @@ _rtk*
 simulation-*
 claude-pro-usage.json
 article-*.md
-# SWE-bench port outputs
+# SWE-bench port outputs (TypeScript bench)
 patches/
 reports/swe-*.md
 reports/swe-*.json
+# MCP TSR bench outputs (TypeScript bench)
+mcp-runs/
+reports/mcp-*.md
+reports/mcp-*.json
+# Per-user MCP server config — may contain inline auth tokens
+mcp-bench.json

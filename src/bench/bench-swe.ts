@@ -34,11 +34,11 @@ import { ensureRepo, resetRepo, captureDiff } from './repo.js';
 import { fetchTask, sampleRandomTasks } from './tasks.js';
 import { runStreamSession } from './stream-session.js';
 import { parseSessionTurns } from './claude-jsonl.js';
-import { aggregateTurns, costUsd, meanUsage, totalTokens, zeroUsage } from './usage.js';
-import { bootstrapCi, dropNonFinite, median, signTestTwoSided, stdev, mean } from './stats.js';
+import { aggregateTurns, costUsd, totalTokens, zeroUsage } from './usage.js';
 import { createRng } from './rng.js';
 import { buildPrompts } from './prompts.js';
 import { writeReports, ReportInput, StatsBlock } from './report-swe.js';
+import { computeStats } from './stats-pipeline.js';
 import { BackendName, RunResult, Task, UsageDict } from './types.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -221,94 +221,6 @@ async function runOneSession(opts: RunOneSessionOpts): Promise<RunResult> {
   }
 
   return { sessionId, usage, turns, resultEvents, rawTail, diffPath };
-}
-
-// ──────── Stats computation ───────────────────────────────────────────────
-
-interface ComputeStatsOpts {
-  tasksToRun: string[];
-  results: Record<string, Record<string, RunResult[]>>;
-  backendOrder: BackendName[];
-  cfg: ReturnType<typeof loadConfig>;
-  rng: ReturnType<typeof createRng>;
-}
-
-function computeStats(opts: ComputeStatsOpts): StatsBlock {
-  const { tasksToRun, results, cfg, rng } = opts;
-
-  // Build per-task delta arrays.
-  const tokenRatios: number[] = [];
-  const deltaTokens: number[] = [];
-  const deltaOutput: number[] = [];
-  const deltaCost: number[] = [];
-
-  for (const taskId of tasksToRun) {
-    const byBackend = results[taskId];
-    if (!byBackend) continue;
-    const v = meanUsage((byBackend.vanilla ?? []).map(r => r.usage));
-    const e = meanUsage((byBackend.edgee ?? []).map(r => r.usage));
-    if (v.calls === 0 || e.calls === 0) continue;
-    const vTot = totalTokens(v);
-    const eTot = totalTokens(e);
-    if (vTot === 0 || eTot === 0) continue;
-    tokenRatios.push(eTot / vTot);
-    deltaTokens.push(vTot - eTot);
-    deltaOutput.push(v.output - e.output);
-    deltaCost.push(costUsd(v) - costUsd(e));
-  }
-
-  const cleanRatios = dropNonFinite(tokenRatios);
-  const cleanDeltaTokens = dropNonFinite(deltaTokens);
-  const cleanDeltaOutput = dropNonFinite(deltaOutput);
-  const cleanDeltaCost = dropNonFinite(deltaCost);
-
-  // Bootstrap CIs — share the SAME rng across all four calls, in the same
-  // order as Python's bench (ratios → cost → total → output). Each call
-  // advances the RNG state, so the four sets of resamples are independent.
-  // (Earlier draft created fresh per-metric RNGs, which incorrectly made
-  // the resamples correlated across metrics.)
-  const ciTokenRatio = bootstrapCi(cleanRatios, median, cfg.bootstrapIters, rng);
-  const ciDeltaCost = bootstrapCi(cleanDeltaCost, median, cfg.bootstrapIters, rng);
-  const ciDeltaTokens = bootstrapCi(cleanDeltaTokens, median, cfg.bootstrapIters, rng);
-  const ciDeltaOutput = bootstrapCi(cleanDeltaOutput, median, cfg.bootstrapIters, rng);
-
-  // Sign tests.
-  const signTestTokens = signTestTwoSided(cleanDeltaTokens);
-  const signTestCost = signTestTwoSided(cleanDeltaCost);
-  const signTestOutput = signTestTwoSided(cleanDeltaOutput);
-
-  // Within-(task, backend) CV across all cells with ≥2 valid replicates.
-  const cvs: number[] = [];
-  for (const taskId of tasksToRun) {
-    const byBackend = results[taskId];
-    if (!byBackend) continue;
-    for (const name of opts.backendOrder) {
-      const runs = byBackend[name] ?? [];
-      const totals = runs.map(r => totalTokens(r.usage)).filter(t => t > 0);
-      if (totals.length >= 2) {
-        const m = mean(totals);
-        const sd = stdev(totals);
-        if (m > 0) cvs.push(sd / m);
-      }
-    }
-  }
-  const withinTaskCvMean = cvs.length > 0 ? mean(cvs) : 0;
-
-  return {
-    medianTokenRatio: median(cleanRatios),
-    ciTokenRatio,
-    medianDeltaTokens: median(cleanDeltaTokens),
-    ciDeltaTokens,
-    medianDeltaOutput: median(cleanDeltaOutput),
-    ciDeltaOutput,
-    medianDeltaCost: median(cleanDeltaCost),
-    ciDeltaCost,
-    signTestTokens,
-    signTestCost,
-    signTestOutput,
-    withinTaskCvMean,
-    withinTaskCvCells: cvs.length,
-  };
 }
 
 // ──────── Entrypoint ───────────────────────────────────────────────────────

@@ -144,7 +144,7 @@ export interface TaskMeansRow {
   costRatio: number;
 }
 
-function buildTaskMeansRows(input: ReportInput): TaskMeansRow[] {
+export function buildTaskMeansRows(input: ReportInput): TaskMeansRow[] {
   const rows: TaskMeansRow[] = [];
   for (const taskId of input.tasksRun) {
     const byBackend = input.results[taskId];
@@ -236,7 +236,7 @@ export function computeHeadlineReductions(rows: TaskMeansRow[]): HeadlineReducti
 
 // ──────── Markdown emission ──────────────────────────────────────────────
 
-function renderTagsCallout(input: ReportInput): string[] {
+export function renderTagsCallout(input: ReportInput): string[] {
   const tags = input.config.tags;
   const notes = input.config.notes;
   if (tags.length === 0 && !notes) return [];
@@ -252,7 +252,7 @@ function renderTagsCallout(input: ReportInput): string[] {
   return lines;
 }
 
-function renderConfigSnapshot(input: ReportInput): string[] {
+export function renderConfigSnapshot(input: ReportInput): string[] {
   const c = input.config;
   const tagsCell = c.tags.length > 0 ? c.tags.map(t => `\`${t}\``).join(', ') : '_(none — set via TAGS env var)_';
   const lines = [
@@ -280,7 +280,7 @@ function renderConfigSnapshot(input: ReportInput): string[] {
   return lines;
 }
 
-function renderRecap(
+export function renderRecap(
   reductions: HeadlineReductions,
   stats: StatsBlock | undefined,
   nTasks: number,
@@ -318,7 +318,7 @@ function renderRecap(
   ];
 }
 
-function renderPerTaskSummary(rows: TaskMeansRow[], statsMode: boolean): string[] {
+export function renderPerTaskSummary(rows: TaskMeansRow[], statsMode: boolean): string[] {
   const title = statsMode ? `## Per-task token consumption (means across replicates)` : `## Per-task token consumption`;
   const lines = [
     title,
@@ -335,7 +335,7 @@ function renderPerTaskSummary(rows: TaskMeansRow[], statsMode: boolean): string[
   return lines;
 }
 
-function renderDeltas(rows: TaskMeansRow[]): string[] {
+export function renderDeltas(rows: TaskMeansRow[]): string[] {
   const lines = [
     `## Deltas per task (vanilla − edgee; positive = edgee saves)`,
     ``,
@@ -358,7 +358,7 @@ function renderDeltas(rows: TaskMeansRow[]): string[] {
  * call" wouldn't be meaningful). Mirrors what Python's bench prints to the
  * terminal after each task. Optional — skipped if a task has no usable turns.
  */
-function renderPerCallBreakdown(input: ReportInput): string[] {
+export function renderPerCallBreakdown(input: ReportInput): string[] {
   const lines: string[] = [];
   let anyRendered = false;
   for (const taskId of input.tasksRun) {
@@ -407,7 +407,7 @@ function renderPerCallBreakdown(input: ReportInput): string[] {
   return lines;
 }
 
-function renderStatsBlock(stats: StatsBlock, nTasks: number): string[] {
+export function renderStatsBlock(stats: StatsBlock, nTasks: number): string[] {
   const sig = (st: SignTestResult, totalDirection: string) =>
     `${st.nPositive}/${st.nPositive + st.nNegative} tasks ${totalDirection} edgee; p = ${formatFixed(st.pValue, 3)}`;
   return [
@@ -433,7 +433,7 @@ function renderStatsBlock(stats: StatsBlock, nTasks: number): string[] {
   ];
 }
 
-function renderOverall(rows: TaskMeansRow[], backendOrder: BackendName[], statsMode: boolean): string[] {
+export function renderOverall(rows: TaskMeansRow[], backendOrder: BackendName[], statsMode: boolean): string[] {
   const sum: Record<string, UsageDict> = {};
   for (const name of backendOrder) sum[name] = { calls: 0, input: 0, cache_read: 0, cache_create: 0, output: 0 };
   for (const r of rows) {
@@ -469,7 +469,7 @@ function renderOverall(rows: TaskMeansRow[], backendOrder: BackendName[], statsM
   return lines;
 }
 
-function renderSessionAppendix(input: ReportInput): string[] {
+export function renderSessionAppendix(input: ReportInput): string[] {
   const lines = [`## Session IDs (for ccusage verification)`, ``];
   for (const taskId of input.tasksRun) {
     const byBackend = input.results[taskId];
@@ -558,15 +558,24 @@ export interface WriteReportsResult {
  * so the resulting filename is sortable AND discoverable by tag:
  *   swe-2026-06-19T14-30-02-734Z--brevity--tsr.md
  *
- * Without tags, just `swe-<ISO>.{md,json}` to keep older runs clean.
+ * The `prefix` parameter selects the benchmark family: `'swe'` (default) for
+ * the SWE-bench harness, `'mcp'` for the MCP tool-surface-reduction bench.
+ * Different prefixes let both benchmarks share a single `reports/` directory
+ * without colliding.
+ *
+ * Without tags, just `<prefix>-<ISO>.{md,json}` to keep older runs clean.
  * Exported for testing.
  */
-export function reportBasename(finishedAtIso: string, tags: readonly string[]): string {
+export function reportBasename(
+  finishedAtIso: string,
+  tags: readonly string[],
+  prefix: string = 'swe',
+): string {
   const iso = finishedAtIso.replace(/[:.]/g, '-');
-  if (tags.length === 0) return `swe-${iso}`;
+  if (tags.length === 0) return `${prefix}-${iso}`;
   // Tags are already slugified by parseTags, but be defensive.
   const tagPart = tags.map(t => t.replace(/[^a-z0-9_-]/gi, '-')).join('--');
-  return `swe-${iso}--${tagPart}`;
+  return `${prefix}-${iso}--${tagPart}`;
 }
 
 /** Write the markdown + JSON reports to `reports/swe-<ISO>[--<tags>].{md,json}`. */

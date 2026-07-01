@@ -29,8 +29,14 @@ export function encodeCwd(cwd: string): string {
 
 /**
  * Find the JSONL file for a given session_id. Prefers the glob path; falls
- * back to the encoded-cwd directory's newest-mtime *.jsonl. Returns null if
- * neither yields a hit.
+ * back to the encoded-cwd directory's newest-mtime *.jsonl whose first line's
+ * `sessionId` field matches the requested ID. Returns null if neither yields
+ * a verified hit.
+ *
+ * The sessionId-verification step on the fallback path is load-bearing: it
+ * prevents cross-run contamination when claude bails before writing a JSONL,
+ * which would otherwise let `parseSessionTurns` silently return data from a
+ * previous run's session in the same project dir.
  */
 async function locateJsonl(cwd: string, sessionId: string): Promise<string | null> {
   // Primary: glob across all project dirs. This is what the bench used for
@@ -42,7 +48,8 @@ async function locateJsonl(cwd: string, sessionId: string): Promise<string | nul
   });
   if (matches.length > 0) return matches[0];
 
-  // Fallback: look in the encoded-cwd directory for the newest .jsonl.
+  // Fallback: look in the encoded-cwd directory for the newest .jsonl whose
+  // first line declares the matching sessionId.
   const projectDir = path.join(PROJECTS_DIR, encodeCwd(cwd));
   let dirents: string[];
   try {
@@ -66,7 +73,35 @@ async function locateJsonl(cwd: string, sessionId: string): Promise<string | nul
   const valid = candidates.filter((x): x is { path: string; mtimeMs: number } => x !== null);
   if (valid.length === 0) return null;
   valid.sort((a, b) => b.mtimeMs - a.mtimeMs);
-  return valid[0].path;
+  for (const c of valid) {
+    if (await firstLineSessionIdMatches(c.path, sessionId)) return c.path;
+  }
+  return null;
+}
+
+/**
+ * Read a JSONL's first non-empty line and check its top-level `sessionId`.
+ * Returns false on any parse error / missing field — i.e., we only accept
+ * a positive match.
+ */
+async function firstLineSessionIdMatches(jsonlPath: string, sessionId: string): Promise<boolean> {
+  let text: string;
+  try {
+    text = await readFile(jsonlPath, 'utf8');
+  } catch {
+    return false;
+  }
+  for (const raw of text.split('\n')) {
+    const s = raw.trim();
+    if (!s) continue;
+    try {
+      const obj = JSON.parse(s) as { sessionId?: unknown };
+      return obj.sessionId === sessionId;
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
 /**
