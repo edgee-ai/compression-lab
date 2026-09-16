@@ -333,7 +333,7 @@ async function main() {
   }
 
   console.log('\nCalling Claude via Edgee API...');
-  const edgeeBaseUrl = env.EDGEE_BASE_URL ?? 'https://api.edgee.ai';
+  const edgeeBaseUrl = env.EDGEE_BASE_URL ?? 'https://edgee.io';
   const res = await fetch(`${edgeeBaseUrl}/v1/chat/completions`, {
     method: 'POST',
     headers: {
