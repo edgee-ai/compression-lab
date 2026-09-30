@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "description": "Fixture session JSONLs for the TypeScript claude-jsonl.ts parser. Each <sid>.jsonl ships with <sid>.expected.json containing the output of Python's parse_session_turns + aggregate_turns. The TS port must diff-clean against these.",
+  "validation_policy": "TS parse output must match Python's `turns` array bit-exact (same length, same per-turn UsageDict). Insertion order must match \u2014 the dedup-by-highest-output rule must NOT change the first-seen position of an id.",
+  "fixtures": [
+    {
+      "session_id": "0f2790be-6aa7-481f-8781-c4bcdb189265",
+      "label": "small-vanilla",
+      "task": "django__django-11099",
+      "backend": "vanilla",
+      "size_bytes": 30215,
+      "n_turns": 3,
+      "n_calls_aggregated": 3,
+      "why_picked": "Clean small session, 4 assistant messages with 1 duplicate-id pair. Validates the basic dedup path."
+    },
+    {
+      "session_id": "d5e47c65-24f9-443c-9ca8-ff3c9d49187e",
+      "label": "small-edgee",
+      "task": "django__django-11099",
+      "backend": "edgee",
+      "size_bytes": 31793,
+      "n_turns": 4,
+      "n_calls_aggregated": 4,
+      "why_picked": "Edgee-side small session \u2014 exercises any backend-specific JSONL shape differences (none expected, but worth checking)."
+    },
+    {
+      "session_id": "8065e0d0-ea88-46a0-bdfc-3d0bdb69d316",
+      "label": "large-with-many-dups",
+      "task": "django__django-16408",
+      "backend": "vanilla",
+      "size_bytes": 343146,
+      "n_turns": 36,
+      "n_calls_aggregated": 36,
+      "why_picked": "Large session: 55 assistant msgs but only 36 unique ids \u2014 19 duplicates that exercise the keep-highest-output-tokens rule. Primary stress test for the dedup logic."
+    }
+  ]
+}
