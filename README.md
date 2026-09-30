@@ -6,6 +6,40 @@ The repository ships **two complementary benchmarks** that solve different probl
 
 ---
 
+## Results for the V2 Compression layer on the SWE Lite benchmark
+
+| Technique | Metric | Reduction vs Vanilla - agg / mean / median |
+| --- | --- | --- |
+| **Brevity** | Cost | 30.6% / 30.0% / 33.3% |
+|  | Tokens | 23.9% / 23.4% / 25.4% |
+|  | Output | 61.3% / 63.4% / 77.2% |
+|  | Sign-test (cost) | 277/300 wins, p≈1.6×10⁻⁵⁶ |
+| **Tool Result Trimming** | Cost | 6.3% / 5.6% / 6.0% |
+|  | Tokens | 6.9% / 6.0% / 6.0% |
+|  | Output | 2.0% / 2.5% / 4.3% |
+|  | Sign-test (cost) | 202/300 wins, p≈1.9×10⁻⁹ |
+| **TSR** | Cost | 16.7% / 14.4% / 14.0% |
+|  | Tokens | 18.8% / 15.9% / 15.8% |
+|  | Output | 17.2% / 16.0% / 17.0% |
+|  | Sign-test (cost) | 260/300 wins, p≈1.1×10⁻⁴⁰ |
+
+## Results for the endurance challenge
+
+| Metric | Baseline Claude | Claude + Edgee | Improvement |
+| --- | --- | --- | --- |
+| Instructions completed | 21 | 26.5 | +26.2% |
+| Plan consumed per instruction | 4.76% | 3.77% | 20.8% more efficient |
+| Total session cost | $10.25 | $12.26 | +19.6% |
+| Cost per instruction | $0.488 | $0.463 | 5.1% cheaper per task |
+
+## Experimental choices
+
+- SWE is not meant for MCP testing, this led us to artificially augment it with some MCP requests to have something to measure 
+- SWE being tedious and costly to run several times, we recommend running on a randomly selected subset with a setting that provides a significant p-value 
+- To measure the effects of each compression layer independently, we haven't ran them all at once. This is also justified by the fact that they don't target the same parts of a prompt and would not have majorly overlapped.
+
+---
+
 ## Which bench should I use?
 
 | | **Manual bench** | **Statistical bench** |
